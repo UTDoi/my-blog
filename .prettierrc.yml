@@ -1,2 +1,2 @@
-arrowParens: "avoid"
 semi: false
+arrowParens: avoid
