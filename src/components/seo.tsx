@@ -10,10 +10,10 @@ import { Helmet } from "react-helmet"
 import { useStaticQuery, graphql } from "gatsby"
 
 type Props = {
-  title: string,
-  description: string,
-  lang: string,
-  meta: Array<{name: string, content: string}>
+  title: string
+  description: string
+  lang: string
+  meta: Array<{ name: string; content: string }>
 }
 
 const Seo: React.VFC<Props> = ({ description, lang, meta, title }) => {

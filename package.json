@@ -21,6 +21,11 @@
   },
   "devDependencies": {
     "@types/react-helmet": "^6.1.4",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-loader": "^4.0.2",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.4.1",
     "typescript": "^4.4.4"
   },
   "keywords": [
@@ -30,12 +35,14 @@
   "scripts": {
     "build": "gatsby build",
     "develop": "gatsby develop",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "start": "gatsby develop",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
     "test": "echo \"Write tests! -> https://gatsby.dev/unit-testing\" && exit 1",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "fix:eslint": "eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
+    "fix:prettier": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "fix": "run-s fix:prettier fix:eslint"
   },
   "repository": {
     "type": "git",
