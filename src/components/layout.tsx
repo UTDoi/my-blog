@@ -7,8 +7,8 @@
 
 import { graphql, useStaticQuery } from "gatsby"
 import * as React from "react"
+import { GlobalStyles } from "twin.macro"
 import Header from "./header"
-import "./layout.css"
 
 type Props = {
   children: React.ReactNode
@@ -27,6 +27,7 @@ const Layout: React.VFC<Props> = ({ children }) => {
 
   return (
     <>
+      <GlobalStyles />
       <Header siteTitle={data?.site?.siteMetadata?.title || `Title`} />
       <div
         style={{
