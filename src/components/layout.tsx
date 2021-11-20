@@ -30,9 +30,11 @@ const Layout: React.VFC<Props> = ({ children }) => {
   return (
     <>
       <GlobalStyles />
-      <Header siteTitle={data?.site?.siteMetadata?.title || "Title"} />
-      <main tw="container mx-auto text-center">{children}</main>
-      <Footer />
+      <div tw="bg-gray-300 text-black font-roboto">
+        <Header siteTitle={data?.site?.siteMetadata?.title || "Title"} />
+        <main tw="container mx-auto text-center">{children}</main>
+        <Footer />
+      </div>
     </>
   )
 }
