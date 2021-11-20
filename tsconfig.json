@@ -1,5 +1,6 @@
 {
   "include": ["./src/**/*"],
+  "files": ["src/types/twin.d.ts"],
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
