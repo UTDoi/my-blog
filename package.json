@@ -21,12 +21,14 @@
     "gatsby-source-filesystem": "^4.1.1",
     "gatsby-transformer-sharp": "^4.1.0",
     "react": "^17.0.1",
+    "react-burger-menu": "^3.0.6",
     "react-dom": "^17.0.1",
     "react-helmet": "^6.1.0",
     "tailwindcss": "^2.2.19",
     "twin.macro": "^2.8.1"
   },
   "devDependencies": {
+    "@types/react-burger-menu": "^2.8.2",
     "@types/react-helmet": "^6.1.4",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
