@@ -19,6 +19,7 @@
     "gatsby-plugin-sharp": "^4.1.2",
     "gatsby-plugin-typegen": "^2.2.4",
     "gatsby-source-filesystem": "^4.1.1",
+    "gatsby-transformer-remark": "^5.2.0",
     "gatsby-transformer-sharp": "^4.1.0",
     "react": "^17.0.1",
     "react-burger-menu": "^3.0.6",
