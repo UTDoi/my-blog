@@ -1,43 +1,45 @@
+---
+slug: "/blog/ssh"
+date: "2021-11-21"
+title: "sshについて"
+---
+
 # 仕組み
-1. clientでkey pairを生成
-2. serverでuserを作成し、pub_keyを渡してuserを紐付け
-3. clientからipとuserを指定し、接続要求を行う
-4. serverで乱数を生成、userに紐づくpub_keyを取り出し、乱数を暗号化したものをclientに返す この時乱数からハッシュ値も作って保存しておく
-5. clientで、serverから受け取った暗号をprivate_keyで復号する 複合されたもの(=serverで生成した乱数)からハッシュ値を生成、know_hostsに保存しserverにも送る
-6. clientから送られてきたハッシュ値とserverに保存したハッシュ値が同じなら認証成功->接続
+
+1. client で key pair を生成
+2. server で user を作成し、pub_key を渡して user を紐付け
+3. client から ip と user を指定し、接続要求を行う
+4. server で乱数を生成、user に紐づく pub_key を取り出し、乱数を暗号化したものを client に返す この時乱数からハッシュ値も作って保存しておく
+5. client で、server から受け取った暗号を private_key で復号する 複合されたもの(=server で生成した乱数)からハッシュ値を生成、know_hosts に保存し server にも送る
+6. client から送られてきたハッシュ値と server に保存したハッシュ値が同じなら認証成功->接続
 
 # ssh agent forwarding
-ssh agentで登録させた内容を接続後のssh接続に引き継ぐ
 
-サーバーA->サーバB->サーバC
+ssh agent で登録させた内容を接続後の ssh 接続に引き継ぐ
 
-って感じでsshするとき、
+サーバー A->サーバ B->サーバ C
 
-- サーバーAにある秘密鍵をサーバAのssh agentに登録
-- サーバBに公開鍵認証で接続
-- そのままサーバーBからCに接続する時、秘密鍵をAのssh agentから引継ぎ、公開鍵認証を行う
+って感じで ssh するとき、
+
+- サーバー A にある秘密鍵をサーバ A の ssh agent に登録
+- サーバ B に公開鍵認証で接続
+- そのままサーバー B から C に接続する時、秘密鍵を A の ssh agent から引継ぎ、公開鍵認証を行う
 
 って手法
 
-これによりサーバBに秘密鍵を保存しておかなくて済む
+これによりサーバ B に秘密鍵を保存しておかなくて済む
 
-ssh agentに秘密鍵を渡すには、
+ssh agent に秘密鍵を渡すには、
 
 `ssh-add -K <keyへのpath>`
 
-これでkey chain storeに鍵が登録されるので、今後自動的にagentにkeyが渡される
-
+これで key chain store に鍵が登録されるので、今後自動的に agent に key が渡される
 
 ※
-sshconfigに
-`
-AddKeysToAgent yes
-`
-を入れてあげれば -KつけなくてもOK
+sshconfig に
+`AddKeysToAgent yes`
+を入れてあげれば -K つけなくても OK
 
-
-あとはsshconfigに
-`
-ForwardAgent yes
-`
-を追加してあげればOK
+あとは sshconfig に
+`ForwardAgent yes`
+を追加してあげれば OK
