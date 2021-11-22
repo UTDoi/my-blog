@@ -1,6 +1,7 @@
 ---
 date: "2021-11-21"
 title: "sshについて"
+slug: "/blog/about-ssh"
 ---
 
 # 仕組み
