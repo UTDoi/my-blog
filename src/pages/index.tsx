@@ -4,7 +4,9 @@ import "twin.macro"
 import Layout from "../components/Layout"
 import Seo from "../components/Seo"
 
-const IndexPage: React.VFC<PageProps<GatsbyTypes.IndexQuery>> = ({ data }) => (
+const IndexPage: React.VFC<PageProps<GatsbyTypes.BlogIndexQuery>> = ({
+  data,
+}) => (
   <Layout>
     <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
     {data?.allMarkdownRemark?.edges?.map(edge => (
@@ -22,7 +24,7 @@ const IndexPage: React.VFC<PageProps<GatsbyTypes.IndexQuery>> = ({ data }) => (
 )
 
 export const query = graphql`
-  query Index {
+  query BlogIndex {
     allMarkdownRemark {
       edges {
         node {
