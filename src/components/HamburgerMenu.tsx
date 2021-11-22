@@ -42,8 +42,7 @@ const StyledMenu = styled.div`
 
   /* General sidebar styles */
   .bm-menu {
-    background: #373a47;
-    ${tw`pt-8 px-6 pb-0 text-xl leading-8 tracking-widest`}
+    ${tw`bg-gray-800 bg-opacity-60 pt-8 px-6 pb-0 text-xl leading-8 tracking-widest`}
   }
 
   /* Morph shape necessary with bubble or elastic */
