@@ -1,53 +1,42 @@
-import { Link } from "gatsby"
+import { graphql, Link, PageProps } from "gatsby"
 import * as React from "react"
+import "twin.macro"
 import Layout from "../components/Layout"
 import Seo from "../components/Seo"
 
-const IndexPage: React.VFC = () => (
+const IndexPage: React.VFC<PageProps<GatsbyTypes.IndexQuery>> = ({ data }) => (
   <Layout>
     <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
-    <h1>Hi people</h1>
-    <p>Welcome to your new Gatsby site.</p>
-    <p>Now go build something great.</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>hogehoge hogehoge</p>
-    <p>
-      <Link to="/page-2/">Go to page 2</Link> <br />
-    </p>
+    {data?.allMarkdownRemark?.edges?.map(edge => (
+      <section key={edge.node.id} tw="px-4 py-2">
+        <Link to={edge.node.frontmatter?.slug || ""}>
+          <h2 tw="text-2xl font-bold pb-2">{edge.node.frontmatter?.title}</h2>
+          <p tw="pb-1 tracking-normal">{edge.node.excerpt}</p>
+          <time dateTime={edge.node.frontmatter?.date} tw="font-light">
+            {edge.node.frontmatter?.date}
+          </time>
+        </Link>
+      </section>
+    ))}
   </Layout>
 )
+
+export const query = graphql`
+  query Index {
+    allMarkdownRemark {
+      edges {
+        node {
+          id
+          frontmatter {
+            title
+            date
+            slug
+          }
+          excerpt
+        }
+      }
+    }
+  }
+`
 
 export default IndexPage
