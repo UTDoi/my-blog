@@ -1,3 +1,4 @@
 **/__generated__
 gatsby-config.js
+gatsby-browser.js
 tailwind.config.js
