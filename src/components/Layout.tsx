@@ -32,7 +32,7 @@ const Layout: React.VFC<Props> = ({ children }) => {
       <GlobalStyles />
       <div tw="bg-gray-300 text-black font-roboto flex flex-col min-h-screen">
         <Header siteTitle={data?.site?.siteMetadata?.title || "Title"} />
-        <main tw="container mx-auto text-center flex-grow">{children}</main>
+        <main tw="container mx-auto flex-grow">{children}</main>
         <Footer />
       </div>
     </>
