@@ -8,7 +8,7 @@ type Props = {
 }
 
 const Header: React.VFC<Props> = ({ siteTitle }) => (
-  <header tw="text-white bg-black opacity-60 sticky top-0">
+  <header tw="text-white bg-black bg-opacity-60 sticky top-0">
     <h1 tw="text-2xl tracking-widest p-3 antialiased">
       <Link to="/">{siteTitle}</Link>
     </h1>
