@@ -23,7 +23,7 @@ const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
         </div>
         <div
           dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
-          tw="prose max-w-full"
+          tw="prose prose-sm md:prose max-w-full"
         />
       </article>
     </Layout>
