@@ -11,7 +11,7 @@ const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
   return (
     <Layout>
       <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
-      <article tw="py-2.5 px-5">
+      <article tw="py-2.5">
         <h1 tw="text-3xl font-bold">{markdownRemark?.frontmatter?.title}</h1>
         <div tw="flex flex-row-reverse mb-2">
           <time

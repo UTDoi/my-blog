@@ -10,7 +10,7 @@ const IndexPage: React.VFC<PageProps<GatsbyTypes.BlogIndexQuery>> = ({
   <Layout>
     <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
     {data?.allMarkdownRemark?.edges?.map(edge => (
-      <section key={edge.node.id} tw="px-4 py-2">
+      <section key={edge.node.id} tw="py-2">
         <Link to={edge.node.frontmatter?.slug || ""}>
           <h2 tw="text-2xl font-bold pb-2">{edge.node.frontmatter?.title}</h2>
           <p tw="pb-1 tracking-normal">{edge.node.excerpt}</p>
