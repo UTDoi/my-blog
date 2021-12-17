@@ -8,7 +8,7 @@ const IndexPage: React.VFC<PageProps<GatsbyTypes.BlogIndexQuery>> = ({
   data,
 }) => (
   <Layout>
-    <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
+    <Seo title="Top" />
     {data?.allMarkdownRemark?.edges?.map(edge => (
       <section key={edge.node.id} tw="py-2">
         <Link to={edge.node.frontmatter?.slug || ""}>

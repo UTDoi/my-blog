@@ -1,25 +1,17 @@
-/**
- * SEO component that queries for data with
- *  Gatsby's useStaticQuery React hook
- *
- * See: https://www.gatsbyjs.com/docs/use-static-query/
- */
-
 import { graphql, useStaticQuery } from "gatsby"
 import * as React from "react"
 import { Helmet } from "react-helmet"
 
 type Props = {
   title: string
-  description: string
-  lang: string
-  meta: Array<{ name: string; content: string }>
+  description?: string
+  meta?: Array<{ name: string; content: string }>
 }
 
-const Seo: React.VFC<Props> = ({ description, lang, meta, title }) => {
-  const { site } = useStaticQuery(
+const Seo: React.VFC<Props> = ({ title, description, meta }) => {
+  const { site } = useStaticQuery<GatsbyTypes.SeoQuery>(
     graphql`
-      query {
+      query Seo {
         site {
           siteMetadata {
             title
@@ -31,16 +23,16 @@ const Seo: React.VFC<Props> = ({ description, lang, meta, title }) => {
     `
   )
 
-  const metaDescription = description || site.siteMetadata.description
-  const defaultTitle = site.siteMetadata?.title
+  const defaultTitle = site?.siteMetadata?.title
+  const metaDescription = description || site?.siteMetadata?.description
 
   return (
     <Helmet
       htmlAttributes={{
-        lang,
+        lang: "ja",
       }}
       title={title}
-      titleTemplate={defaultTitle ? `%s | ${defaultTitle}` : undefined}
+      titleTemplate={defaultTitle ? `%s | ${defaultTitle}` : `%s`}
       meta={[
         {
           name: `description`,
@@ -64,7 +56,7 @@ const Seo: React.VFC<Props> = ({ description, lang, meta, title }) => {
         },
         {
           name: `twitter:creator`,
-          content: site.siteMetadata?.author || ``,
+          content: site?.siteMetadata?.author || ``,
         },
         {
           name: `twitter:title`,
@@ -74,7 +66,7 @@ const Seo: React.VFC<Props> = ({ description, lang, meta, title }) => {
           name: `twitter:description`,
           content: metaDescription,
         },
-      ].concat(meta)}
+      ].concat(meta || [])}
     />
   )
 }

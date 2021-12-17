@@ -10,7 +10,7 @@ const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
   const { markdownRemark } = data
   return (
     <Layout>
-      <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
+      <Seo title={markdownRemark?.frontmatter?.title ?? ""} />
       <article tw="py-2.5">
         <h1 tw="text-3xl font-bold">{markdownRemark?.frontmatter?.title}</h1>
         <div tw="flex flex-row-reverse mb-2">

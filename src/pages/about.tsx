@@ -14,7 +14,7 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
   const { markdownRemark } = data
   return (
     <Layout>
-      <Seo title="hoge" description="hoge" lang="ja" meta={[]} />
+      <Seo title="About" />
       <div tw="text-center mt-4">
         <StaticImage
           src="../../content/assets/profile.jpg"
