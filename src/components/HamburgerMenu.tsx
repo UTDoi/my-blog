@@ -4,6 +4,8 @@ import tw, { styled } from "twin.macro"
 
 type Props = {
   children: React.ReactNode
+  outerContainerId: string
+  pageWrapId: string
 }
 
 const StyledMenu = styled.div`
@@ -66,9 +68,18 @@ const StyledMenu = styled.div`
   }
 `
 
-const HamburgerMenu: React.VFC<Props> = ({ children }) => (
+const HamburgerMenu: React.VFC<Props> = ({
+  outerContainerId,
+  pageWrapId,
+  children,
+}) => (
   <StyledMenu>
-    <Menu right width="40%">
+    <Menu
+      right
+      width="40%"
+      outerContainerId={outerContainerId}
+      pageWrapId={pageWrapId}
+    >
       {children}
     </Menu>
   </StyledMenu>

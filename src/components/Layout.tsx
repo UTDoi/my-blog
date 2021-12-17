@@ -27,12 +27,24 @@ const Layout: React.VFC<Props> = ({ children }) => {
     }
   `)
 
+  const hamburgerMenuOuterContainerId = "outer-container"
+  const hamburgerMenuPageWrapId = "page-wrap"
+
   return (
     <>
       <GlobalStyles />
-      <div tw="bg-gray-300 text-black font-roboto flex flex-col min-h-screen">
-        <Header siteTitle={data?.site?.siteMetadata?.title || "Title"} />
-        <main tw="container flex-grow">{children}</main>
+      <div
+        id={hamburgerMenuOuterContainerId}
+        tw="bg-gray-300 text-black font-roboto flex flex-col min-h-screen"
+      >
+        <Header
+          siteTitle={data?.site?.siteMetadata?.title || "Title"}
+          hamburgerMenuOuterContainerId={hamburgerMenuOuterContainerId}
+          hamburgerMenuPageWrapId={hamburgerMenuPageWrapId}
+        />
+        <main id={hamburgerMenuPageWrapId} tw="container flex-grow">
+          {children}
+        </main>
         <Footer />
       </div>
     </>
