@@ -8,14 +8,14 @@ type Props = {
 }
 
 const Header: React.VFC<Props> = ({ siteTitle }) => (
-  <header tw="text-white bg-black bg-opacity-60 sticky top-0">
+  <header tw="text-white bg-black bg-opacity-60 sticky top-0 z-10">
     <div tw="text-2xl tracking-widest p-3 antialiased">
       <Link to="/">{siteTitle}</Link>
     </div>
     <nav>
       <HamburgerMenu>
         <Link to="/">TOP</Link>
-        <Link to="/">ABOUT</Link>
+        <Link to="/about">ABOUT</Link>
       </HamburgerMenu>
     </nav>
   </header>
