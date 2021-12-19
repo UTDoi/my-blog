@@ -10,6 +10,13 @@ module.exports = {
         lg: "4rem",
         xl: "5rem",
       },
+      screens: {
+        DEFAULT: "100%",
+        sm: "640px",
+        md: "768px",
+        lg: "960px",
+        xl: "960px",
+      },
     },
     extend: {
       fontFamily: {
