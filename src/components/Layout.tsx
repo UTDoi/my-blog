@@ -42,7 +42,7 @@ const Layout: React.VFC<Props> = ({ children }) => {
           hamburgerMenuOuterContainerId={hamburgerMenuOuterContainerId}
           hamburgerMenuPageWrapId={hamburgerMenuPageWrapId}
         />
-        <main id={hamburgerMenuPageWrapId} tw="container flex-grow">
+        <main id={hamburgerMenuPageWrapId} tw="container flex-grow mb-6">
           {children}
         </main>
         <Footer />
