@@ -2,6 +2,7 @@ import { graphql, PageProps } from "gatsby"
 import * as React from "react"
 import "twin.macro"
 import Layout from "../components/Layout"
+import MarkdownContent from "../components/MarkdownContent"
 import Seo from "../components/Seo"
 
 const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
@@ -21,10 +22,12 @@ const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
             {markdownRemark?.frontmatter?.date}
           </time>
         </div>
-        <div
-          dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
-          tw="prose prose-sm md:prose max-w-full"
-        />
+        <MarkdownContent>
+          <div
+            dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
+            tw="prose prose-sm md:prose max-w-full"
+          />
+        </MarkdownContent>
       </article>
     </Layout>
   )

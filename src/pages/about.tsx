@@ -6,6 +6,7 @@ import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa"
 import { SiGmail } from "react-icons/si"
 import "twin.macro"
 import Layout from "../components/Layout"
+import MarkdownContent from "../components/MarkdownContent"
 import Seo from "../components/Seo"
 
 const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
@@ -61,10 +62,12 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
             </div>
           </div>
         </IconContext.Provider>
-        <div
-          dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
-          tw="prose prose-sm md:prose  text-left"
-        />
+        <MarkdownContent>
+          <div
+            dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
+            tw="prose prose-sm md:prose text-left"
+          />
+        </MarkdownContent>
       </div>
     </Layout>
   )
