@@ -4,20 +4,20 @@ title: "awsについて"
 slug: "/blog/about-aws"
 ---
 
-# IAM
+## IAM
 
-## User
+### User
 
 - 認証は ID&Pass もしくは ACCESS_KEY&SECRET_KEY で行うよ
 - セキュリティのため(KEY が漏洩しやすいから)User にはほとんど権限を与えず、認証後に必要な policy が attach された Role に Switch する運用がほとんどだよ
 
-## Role
+### Role
 
 - role を付与されたリソースは、sts に対して role の arn を指定して assume role リクエストを送って credential を取得して、それを使うことで role に付与された policy の権限セットでアクセスできるよ
   - だから role には assume role に関する policy(信頼 policy)を設定して、assume role を許可する principal を限定する必要があるよ
   - 得られる credential は short-term だよ
 
-## policy
+### policy
 
 policy は usecase で大別すると以下の 2 つだよ
 
@@ -42,15 +42,15 @@ Resource ベース policy が atttach された Resource に、Identities ベー
 
 の順に優先されて評価されるよ
 
-# Lambda
+## Lambda
 
-## execution role
+### execution role
 
 - Lambda function が invoke されるときに assume する role のことだよ
 - 実態は iam role だよ
 - default だと CloudWatch へのアクセス(?)のみが許可された minimal な policy が attach された role が暗黙的に作られ、assume されるよ
 
-## concurrency
+### concurrency
 
 - Lambda は request を受けるごとに新しく実行インスタンスを起動してリクエストを受けるよ
   - この、起動された台数=時間あたりにいくらリクエストを捌けるかを concurrency と呼んでるよ
@@ -63,12 +63,12 @@ Resource ベース policy が atttach された Resource に、Identities ベー
     - これを Provisioned Concurrency っていうよ
     - あとこれ使えばリクエストが spike しても scale 間に合わなくて throtteling にひっかかるみたいなのなくなるよ
 
-## Layer
+### Layer
 
 artifact(npm_modules とか vendor/bundle とかライブラリが主)を共有しておける機能だよ
 Lambda からアクセスできる共有ストレージみたいなイメージだね
 
-## ConnectToVPC
+### ConnectToVPC
 
 - Lambda は AWS 管理のネットワーク上に配置されているよ
 - なので、ユーザが作った VPC の private subnet 内にあるリソースへのアクセスは基本無理だよ
@@ -82,13 +82,13 @@ Lambda からアクセスできる共有ストレージみたいなイメージ�
   - 実際には Lambda の実行インスタンス自体は VPC 内にいないけどね
   - 実際にいるのは ENI だよ
 
-## metrics
+### metrics
 
 - function が execute されるたびに、CloudWatch に metrics を送ってるよ
   - https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics.html
   - Invocations は function が実行された数で、success も error も含むけど、throttle とかで execute 自体が行われなかった時は count されないよ
 
-## logs
+### logs
 
 - function 実行時に出力される log は、勝手に CloudWatchLogs に送信されるよ
   - LogGroup は勝手に作られるよ
@@ -96,7 +96,7 @@ Lambda からアクセスできる共有ストレージみたいなイメージ�
 - 事前に CloudWatchLogGroup を作成しとくと、そいつに対して log が送信されるよ
   - `/aws/lambda/<function name>.`って名前の LogGroup にしとけば OK だよ
 
-## datadog lambda layer
+### datadog lambda layer
 
 datadog では lambda からメトリクス送るためライブラリを lamnda layer の形で提供しているよ
 `arn:aws:lambda:<AWS_リージョン>:464622532012:layer:Datadog-<ランタイム>:<バージョン>`って感じで arn 指定するととってこれるよ
@@ -104,7 +104,7 @@ datadog では lambda からメトリクス送るためライブラリを lamnda
 中身は各ランタイム向けの package だよ
 node.js の場合 datadog-lambda-js って npm package だね
 
-# VPC
+## VPC
 
 - 仮想ネットワークだよ
   - 各 VPC は独立したネットワークになってるよ
@@ -115,7 +115,7 @@ node.js の場合 datadog-lambda-js って npm package だね
 - アカウント作成時に勝手に各 Region に defaultVPC が作られてるよ
   - ec2 や ELB, RDS とかは作成時に VPC を指定しなければ defaultVPC の中に作られるよ
 
-## subnet
+### subnet
 
 - 各 subnet は 1 つの route table と紐付けられるよ
   - route table は、subnet 外に出る outbound traffic の行先を、Destination IP を元に routing するやつだよ
@@ -130,13 +130,13 @@ node.js の場合 datadog-lambda-js って npm package だね
   - internet への outbound traffic のみ OK だよ
   - package の取得などでインスタンスから internet へのアクセスは行いたいが Internet からのアクセスは許したくない場合にこれが作られる yo
 
-## NetworkACL
+### NetworkACL
 
 - subnet ごとに設定できる firewall だよ
 - SG の rule と似てるけど Allow も Deny も指定できるよ
 - SG と違って Stateless なので、戻りの通信も考慮して Allow や Deny をしなきゃいけないよ
 
-## Internet Gateway
+### Internet Gateway
 
 - Internet との通信に使う component で、高い scalability と耐久性、可用性をもつよ
 - 以下の手順で Internet 通信が可能になるよ
@@ -147,14 +147,14 @@ node.js の場合 datadog-lambda-js って npm package だね
 - Internet Gateway は 1to1NAT の役割をはたすよ
   - privateIP と publicIP の mapping をしてくれることによって、Internet との通信が可能になるよ
 
-## NAT device
+### NAT device
 
 - public subnet から Internet への通信を行いたい時は、NAT device を通じて行えるよ
   - privateIP と送信元 port の組み合わせを記憶して、実際の通信先には NAT に割り当てられた publicIP でアクセス、response のヘッダに含まれてる port から privateIP への変換を行い、traffic を通信元に届けるよ
 - NAT device には managed な NATGateway と、unmanaged で ec2 インスタンス上に作成する NATInstance の二種類があるよ
   - 何か理由がない限り managed な NATGateway を使った方がいいよ
 
-### NAT Gateway
+#### NAT Gateway
 
 - public subnet に NAT Gateway を配置して、ElasticIP を割り当てないとダメだよ
   - そうしないと外部と通信できないからね
@@ -162,35 +162,35 @@ node.js の場合 datadog-lambda-js って npm package だね
   - subnet に配置することなんで、1AZ に配置されることになるから可用性高めたい時は複数 AZ(subnet)に 1 つずつ配置するようにした方がいいよ
 - NAT Gateway を通したい private subnet の route table の default gateway に NAT Gateway の id を指定してあげれば準備 OK だよ
 
-### RouteTable
+#### RouteTable
 
 - subnet もしくは gateway からの outbound traffic をどこに routing するか決めるための rule set だよ
 - 作成した VPC には、勝手に main route table が作成されて紐付けられるよ
   - 全ての subnet は、custom route table を指定しなかった時この main route table が適用されるよ
 - Destination で通信元の指定した通信先 IP を定義し、それに対応する Target で routeing 先の gateway の id などを指定するよ
 
-### VPC endpoint
+#### VPC endpoint
 
 - ユーザー VPC 外の AWS リソース(S3)とかに、インターネット経由しなくても VPC 内からアクセスできる機能だよ
   - AWS PrivateLink を利用されているよ
   - Interface endpoints, Gateway Load Balancer endpoints, Gateway endpoints の 3 つがあるよ
 
-#### Interface endpoints
+##### Interface endpoints
 
 - 今はこっちが主流で、ほとんどの service が対応しているよ
 - 指定した subnet 内に endpoint につながった ENI が立ち上がるよ
   - もちろんそいつには private IP が与えられるので、VPC 内で通信ができるって感じだよ
 
-#### Gateway endpoints
+##### Gateway endpoints
 
 - S3 と dynamoDB しか対応してないよ
 - GateWay を VPC に attach して、route table で service endpoint の Destination に対して VPC endpoint GW を routing するって感じだよ
   - service endpoint は public IP に名前解決されて、実際には instance からは public IP にリクエストがいくので、NetworkACL で local VPC 以外への outbound を Deny とかすると失敗しちゃうよ
   - instance からは private IP でリクエストできるので多分、内部では NAT 的な動作をしてるんだろうね
 
-# EC2
+## EC2
 
-## networking
+### networking
 
 - ec2 インスタンスに subnet を指定すると、仮想 NIC が作られてインスタンスに付与されるよ
 - 仮想 NIC には subnet から private IPv4 アドレスが紐付けられるよ
@@ -202,7 +202,7 @@ node.js の場合 datadog-lambda-js って npm package だね
   - public IP アドレスは、NAT によって primary private IP に勝手に紐付けられてるよ
 - 固定 IP が欲しいなら Elastic IP を利用してね(金はかかるよ)
 
-### ENI
+#### ENI
 
 - AWS で使用される仮想 NIC だよ
 - ec2 インスタンスが VPC において network 通信を行うためのインタフェースとして使われたりするよ
@@ -211,12 +211,12 @@ node.js の場合 datadog-lambda-js って npm package だね
 - ec2 インスタンスはデフォルトで eth0 って ENI が attach された状態で起動されるよ
   - もちろん新しく ENI を作ってインスタンスに付与することで、mac アドレス, IP アドレスを 1 インスタンスに 2 以上付与することが可能だよ
 
-## instance profile
+### instance profile
 
 - インスタンスに紐づける role を指定するコンテナだよ
 - インスタンスは、ここで指定された role に assume role しにいくよ
 
-## Security Group
+### Security Group
 
 - ec2 インスタンスの仮想 firewall として機能してくれるやつだよ
   - 例の如く、実態としては ec2 じゃなくて ENI に付与されてるものだから、ec2 についてる ENI ごとに SG を変えることができるよ
@@ -247,9 +247,9 @@ node.js の場合 datadog-lambda-js って npm package だね
 - custom SG 作ってインスタンス作るときにそいつ指定すれば、defaultSG じゃなくて指定した方が attach されるよ
 - customSG は VPC ごとに作れるよ VPC 間で SG の共有はできないよ
 
-# S3
+## S3
 
-## アクセス制御
+### アクセス制御
 
 - ACL
   - AWS account 単位で bucket, object へのアクセス権限を定義できるよ
@@ -259,7 +259,7 @@ node.js の場合 datadog-lambda-js って npm package だね
 
 の 3 つ
 
-## PublicAccessBlock 設定
+### PublicAccessBlock 設定
 
 Public(全世界公開)な ACL, bucket policy が適用されないように block する仕組みを提供してくれる設定
 AWS Account(つまりその Account が所有する bucket すべて)もしくは個別の bucket に対して設定可能
@@ -273,7 +273,7 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
 - restrict_public_buckets
   - public な bucket policy or ACL が適用されたとしても、認証なしにはアクセスできない(?)
 
-# CloudWatch
+## CloudWatch
 
 - AWS リソースの各種 metrics を収集してくれるよ
   - CloudWatch は基本的には metrics の repository だよ
@@ -288,7 +288,7 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
   - AWS リソースが勝手に送信してる分は、その Service 名を元にした namespace になってるよ
   - AWS/EC2 みたいなね
 
-# CloudWatchLogs
+## CloudWatchLogs
 
 - ec2, s3, cloudtrail とかの AWS リソースから送られる log をためておけるよ
   - こっちも metrics と同じく、s3 とかは設定なしでいいけど ec2 とかは統合 CloudWatch agent を install する必要があるよ
@@ -302,17 +302,17 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
 - metric filter = log event の message から metrics を抽出し、そいつを CloudWatchMetrics に変換するやつだよ
   - log group に対して設定できて、設定した metric filter は log group 内の全 log stream に適用されるよ
 
-# Elastic Load Balancing
+## Elastic Load Balancing
 
 - Application Load Balancer, Classic Load Balancer など複数種類があるよ
 
-## Application Load Balancer
+### Application Load Balancer
 
 - load balancer は最低 2AZ に配置されるようにしないといけないよ
   - 作成するとき、最低 2AZ に配置されるように配置 subnet を指定してね
 - public subnet に ALB をおいて、そいつにぶら下げる ec2 は private(protected が多いけど)subnet におくのが普通だよ
 
-## aws CLI
+### aws CLI
 
 - v2 が最新だよ
 - 最低限の configure は aws configure コマンドでやるよ
@@ -322,7 +322,7 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
   - configure を local に複数保持することもできて、1 つ 1 つを profile ってよんでるよ
   - aws configure --profile で指定すれば任意の名前の profile に保存できるけど、指定しなかったら"default"って名前の profile に保存されるよ
 
-# ElasticsearchService
+## ElasticsearchService
 
 - 本番環境とかでは、専用 master node を用意し、かつ MultiAZ 構成にすることが多いよ
   - AZ は 2 つか 3 つを指定できるよ

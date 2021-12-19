@@ -25,7 +25,6 @@ const ShowPage: React.VFC<PageProps<GatsbyTypes.BlogShowQuery>> = ({
         <MarkdownContent>
           <div
             dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
-            tw="prose prose-sm md:prose max-w-full"
           />
         </MarkdownContent>
       </article>
