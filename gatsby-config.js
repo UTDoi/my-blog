@@ -14,7 +14,35 @@ module.exports = {
         path: `${__dirname}/content`,
       },
     },
-    `gatsby-transformer-remark`,
+    {
+      resolve: "gatsby-transformer-remark",
+      options: {
+        plugins: [
+          {
+            resolve: "gatsby-remark-code-buttons",
+            options: {
+              toasterText: "Copied",
+            },
+          },
+          "gatsby-remark-prismjs-title",
+          {
+            resolve: "gatsby-remark-prismjs",
+            options: {
+              classPrefix: "language-",
+              inlineCodeMarker: null,
+              aliases: {},
+              showLineNumbers: true,
+              noInlineHighlight: true,
+              prompt: {
+                user: "root",
+                host: "localhost",
+                global: false,
+              },
+            },
+          },
+        ],
+      },
+    },
     `gatsby-transformer-sharp`,
     `gatsby-plugin-sharp`,
     {
