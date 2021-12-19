@@ -22,6 +22,10 @@ const StyledMarkdown = styled.div`
     ${tw`my-4 list-disc`}
   }
 
+  ol {
+    ${tw`my-4 list-decimal`}
+  }
+
   li {
     ${tw`my-1 mx-6`}
   }
