@@ -65,7 +65,7 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
         <MarkdownContent>
           <div
             dangerouslySetInnerHTML={{ __html: markdownRemark?.html || "" }}
-            tw="prose prose-sm md:prose text-left"
+            tw="text-left"
           />
         </MarkdownContent>
       </div>
