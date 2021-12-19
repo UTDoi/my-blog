@@ -4,7 +4,7 @@ title: "linuxについて"
 slug: "/blog/about-linux"
 ---
 
-# linux(kernel)の三大要素
+## linux(kernel)の三大要素
 
 - process
   - 実行されているプログラム
@@ -16,7 +16,7 @@ slug: "/blog/about-linux"
 
 process <-stream-> process <-stream-> file
 
-# file
+## file
 
 - ここでは file は広義のファイルを指すよ、つまり regular file だけじゃなく、directory や symlink, special file(device など)も指すよ
 - file にはその file の所有 user, 所有 group, そして permission 属性があるよ
@@ -27,7 +27,7 @@ process <-stream-> process <-stream-> file
     - bob は fileA の読みと実行ができる
     - その他の user は、読みのみできる
 
-# user
+## user
 
 - 各 process は、どの user として動作するかを示す属性を持つよ
   - これを credential といって、user id が識別子になるよ
@@ -41,7 +41,7 @@ process <-stream-> process <-stream-> file
     - ユーザー系のコマンド使う時は裏側で勝手に remote のユーザーマスタに問い合わせてくれるよ(?)
     - これによって複数マシンで同じユーザーマスタを使えるので、PC を変えても同じ user で login できるようになるよ
 
-# 端末(tty)
+## 端末(tty)
 
 - linux kernel が認識する論理的なユーザーインタフェースだよ
   - 物理的には、入力用ハードウェアと出力用ハードウェアの 1 組で構成されてるよ
@@ -61,7 +61,7 @@ process <-stream-> process <-stream-> file
     - X Window System はクラサバ型のシステムで、X Client が kernel とやりとりして標準入出力を受け取り、(つまりこっちが kernel には端末として認識される?)、それを元に X Client は X Server に指示を送って、X Server は実際の画面描画処理を行ったり、キーボードなどの入力用ハードウェアから入力をうけとって、X Client に伝えたりするよ
     - OS X とか linux の GUI 環境ではこれが 1 台のマシン上で行われるけど、X Server と X Client はネットワーク的に離れていても問題ないので、リモートにある X Client が入ったマシンと、手元にある X Sever が入ったマシンをつないで、リモートにあるマシンの GUI アプリケーションを手元のマシンのディスプレイに表示しながら動かしたりできるよ
 
-## docker の tty, stdin_open の意味
+### docker の tty, stdin_open の意味
 
 - tty を true にすると、container 上に pts(疑似端末, ssh とか telenet とか network 経由で接続される端末を示す端末 device file だよ)を用意してくれて、container を起動したプロセスに attach された tty と入出力を同期してくれるよ
   - たとえば、tty027 が attach されたシェル上で tty: true でコンテナを実行すると、コンテナ上に pts01 が作られ、tty027 と入出力が同期(仕組み的には pts01 を介してコンテナの kernel と tty027 の stream が結ばれてる?)されるよ
@@ -69,7 +69,7 @@ process <-stream-> process <-stream-> file
 - stdin_open を開くと、container 内プロセスの実行後も標準入力ストリームを開きっぱなしにしてくれるよ
   - 逆にこれが true じゃないと入力をうけつけないから、tty だけ true にしてても container でシェル実行しても入力できないよ
 
-# stream
+## stream
 
 - 各 stream はファイルディスクリプタによって一意に管理されるよ
 - open syscall によって stream が作成され、ファイルディスクリプタが返されるよ
@@ -90,7 +90,7 @@ process <-stream-> process <-stream-> file
   - login shell の標準出力/標準エラー出力は tty10 のディスプレイ、つまりターミナルエミュレータを起動したホストマシンのウィンドウ(実態は dev/tty10 ファイル?)に繋がる
     - で、標準出力/エラー出力は多分 write stream
 
-# shell
+## shell
 
 - 端末から直接 linux kernel を触ることはせず、shell がその間を繋ぐインタフェースプログラムとして動作するよ
   - shell も一つのプログラムだよ
@@ -98,12 +98,12 @@ process <-stream-> process <-stream-> file
     - リダイレクションやパイプも shell の機能だよ
   - tty を繋ぐと shell が立ち上がり、tty から shell に入力テキスト(標準入力 stream を通して)が渡され、shell はその入力を parse して kernel のシステムコールなどを呼び出し kernel から出力を受け取り、tty に出力テキスト(標準出力およびエラー出力 stream を通して)を返すみたいな流れだよ
 
-## リダイレクション
+### リダイレクション
 
 - 標準入力、標準出力、標準エラー出力のつなぐ先を切り替えるよ(通常は端末だよ)
   - `>`だと上書きモード、`>>`だと追記モードになるので`>>`の方が安全だね
   - 標準出力とエラー出力まとめておなじ`FILE`に書きたい場合は `> FILE 2>&1` のように書くイディオムがあるよ
 
-## パイプ
+### パイプ
 
 - 左コマンドの標準出力を右コマンドの標準入力に渡すよ

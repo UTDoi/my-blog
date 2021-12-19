@@ -4,7 +4,7 @@ title: "sshについて"
 slug: "/blog/about-ssh"
 ---
 
-# 仕組み
+## 仕組み
 
 1. client で key pair を生成
 2. server で user を作成し、pub_key を渡して user を紐付け
@@ -13,7 +13,7 @@ slug: "/blog/about-ssh"
 5. client で、server から受け取った暗号を private_key で復号する 複合されたもの(=server で生成した乱数)からハッシュ値を生成、know_hosts に保存し server にも送る
 6. client から送られてきたハッシュ値と server に保存したハッシュ値が同じなら認証成功->接続
 
-# ssh agent forwarding
+## ssh agent forwarding
 
 ssh agent で登録させた内容を接続後の ssh 接続に引き継ぐ
 
