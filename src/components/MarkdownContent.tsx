@@ -11,11 +11,15 @@ const StyledMarkdown = styled.div`
   }
 
   h3 {
-    ${tw`text-xl border-l-2 border-l-black my-4 pl-1.5`}
+    ${tw`text-xl border-l-2 border-l-black my-6 pl-1.5`}
   }
 
   h4 {
-    ${tw`text-lg`}
+    ${tw`text-lg my-3 font-bold`}
+  }
+
+  h5 {
+    ${tw`text-gray-700 my-2`}
   }
 
   ul {
