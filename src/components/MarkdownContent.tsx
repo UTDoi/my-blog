@@ -22,6 +22,10 @@ const StyledMarkdown = styled.div`
     ${tw`text-gray-700 my-3`}
   }
 
+  p {
+    ${tw`mb-4`}
+  }
+
   ul {
     ${tw`my-4 list-disc`}
   }
