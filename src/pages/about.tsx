@@ -27,7 +27,7 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
         />
         <div tw="mt-4 text-3xl font-bold">UTDoi</div>
         <div tw="mt-1">Software Developer</div>
-        <div tw="text-sm mt-1">
+        <div tw="text-sm mt-1 mb-8">
           <FaMapMarkerAlt tw="inline-block mr-0.5" />
           Tokyo
         </div>
