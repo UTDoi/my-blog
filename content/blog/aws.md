@@ -1,4 +1,5 @@
 ---
+published: true
 date: "2021-11-21"
 title: "awsについて"
 slug: "/blog/about-aws"

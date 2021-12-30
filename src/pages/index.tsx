@@ -25,9 +25,7 @@ const IndexPage: React.VFC<PageProps<GatsbyTypes.BlogIndexQuery>> = ({
 
 export const query = graphql`
   query BlogIndex {
-    allMarkdownRemark(
-      filter: { frontmatter: { title: { ne: "about page" } } }
-    ) {
+    allMarkdownRemark(filter: { frontmatter: { published: { eq: true } } }) {
       edges {
         node {
           id
