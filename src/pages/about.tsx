@@ -2,7 +2,7 @@ import { graphql, PageProps } from "gatsby"
 import { StaticImage } from "gatsby-plugin-image"
 import * as React from "react"
 import { IconContext } from "react-icons"
-import { FaGithub, FaLinkedin, FaTwitter } from "react-icons/fa"
+import { FaGithub, FaLinkedin, FaMapMarkerAlt, FaTwitter } from "react-icons/fa"
 import { SiGmail } from "react-icons/si"
 import "twin.macro"
 import Layout from "../components/Layout"
@@ -25,7 +25,12 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
           height={200}
           tw="rounded-full inline-block"
         />
-        <div tw="mt-4 text-2xl">UTDoi</div>
+        <div tw="mt-4 text-3xl font-bold">UTDoi</div>
+        <div tw="mt-1">Software Developer</div>
+        <div tw="text-sm mt-1">
+          <FaMapMarkerAlt tw="inline-block mr-0.5" />
+          Tokyo
+        </div>
         <IconContext.Provider value={{ size: "2rem" }}>
           <div tw="flex justify-around mt-3 mb-5">
             <div>
