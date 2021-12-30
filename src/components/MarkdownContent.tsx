@@ -7,7 +7,7 @@ type Props = {
 
 const StyledMarkdown = styled.div`
   h2 {
-    ${tw`text-2xl font-bold border-b border-b-black my-10 pb-2`}
+    ${tw`text-2xl font-bold border-b border-b-black my-9 pb-2`}
   }
 
   h3 {
