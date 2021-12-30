@@ -1,38 +1,46 @@
 ---
 published: true
 date: "2021-11-21"
-title: "awsについて"
-slug: "/blog/about-aws"
+title: "AWS公式documentの雑サマリ"
+slug: "/blog/aws-document-summary"
 ---
+
+AWS の公式 document の内容をサービス別に雑にサマってみた。
 
 ## IAM
 
+IAM で重要な概念は以下の 3 つ。
+
 ### User
 
-- 認証は ID&Pass もしくは ACCESS_KEY&SECRET_KEY で行うよ
-- セキュリティのため(KEY が漏洩しやすいから)User にはほとんど権限を与えず、認証後に必要な policy が attach された Role に Switch する運用がほとんどだよ
+認証は ID&Pass もしくは ACCESS_KEY&SECRET_KEY で行う。
+
+セキュリティのため(KEY が漏洩しやすいから)User にはほとんど権限を与えず、必要な policy が attach された Role を別途用意し、User 認証後に そちらに Switch する運用が多い。
 
 ### Role
 
-- role を付与されたリソースは、sts に対して role の arn を指定して assume role リクエストを送って credential を取得して、それを使うことで role に付与された policy の権限セットでアクセスできるよ
-  - だから role には assume role に関する policy(信頼 policy)を設定して、assume role を許可する principal を限定する必要があるよ
-  - 得られる credential は short-term だよ
+role を付与されたリソースは、sts に対して role の arn を指定して assume role リクエストを送って credential を取得し、それを使うことで role に付与された policy の権限セットでアクセスできるようになる。
 
-### policy
+だから role には assume role に関する policy(信頼 policy)を設定して、assume role を許可する principal を限定する必要がある。
 
-policy は usecase で大別すると以下の 2 つだよ
+assume role で得られる credential は short-term なことに注意。
+
+### Policy
+
+policy は usecase で大別すると以下の 2 つに分類できる。
 
 - Identities(user, group or role)ベース policy
-  - user, group, role に attach するよ
-  - attach した identity がどんな Resource にどんな action をできるか規定するよ
+  - user, group, role に attach する
+  - attach した identity がどんな Resource にどんな action をできるか規定する
 - Resource ベース policy
-  - AWS Resource に対して attach するよ
-  - attach した Resource に対して、どの Principal がどんな action をできるか規定するよ
-  - policy を attach できる AWS リソースは決まってて、S3 とか ElasticsearchService とかはできるよ
-  - S3 の bucket policy とかが有名だよ
+  - AWS Resource に対して attach する
+  - attach した Resource に対して、どの Principal がどんな action をできるか規定する
+  - policy を attach できる AWS リソースは決まっている
+    - 例えば S3 とか OpenSearch とかが可能
+    - S3 の bucket policy とかが代表例
 - 信頼 policy(assume role policy)
-  - role に attach するよ
-  - attach した role に対する AssumeRole リクエストを sts が許可する Principal を規定するよ
+  - role に attach する
+  - attach した role に対する AssumeRole リクエストを sts が許可する Principal を規定する
 
 Resource ベース policy が atttach された Resource に、Identities ベース policy が attach された indentity からアクセスする場合は、
 双方の policy は
@@ -41,95 +49,112 @@ Resource ベース policy が atttach された Resource に、Identities ベー
 明示的な拒否(Deny) > 明示的な許可(Allow) > 暗黙的な拒否(未設定、デフォルト)
 ```
 
-の順に優先されて評価されるよ
+の順に優先されて評価される。
 
 ## Lambda
 
 ### execution role
 
-- Lambda function が invoke されるときに assume する role のことだよ
-- 実態は iam role だよ
-- default だと CloudWatch へのアクセス(?)のみが許可された minimal な policy が attach された role が暗黙的に作られ、assume されるよ
+Lambda function が invoke されるときに assume する role のこと。
+実態は iam role である。
+
+default だと CloudWatch へのアクセス(?)のみが許可された minimal な policy が attach された role が暗黙的に作られ、assume される。
 
 ### concurrency
 
-- Lambda は request を受けるごとに新しく実行インスタンスを起動してリクエストを受けるよ
-  - この、起動された台数=時間あたりにいくらリクエストを捌けるかを concurrency と呼んでるよ
-  - Burst limit を超える台数起動されちゃうと、そっから先は 500 台/min ごとしか起動できなくなっちゃうよ
-    - tokyo region では 1000 が burst limit だよ
-  - burst limit 超えて、concurrency limit まで行っちゃうとそっから先は増やせなくなっちゃうよ
-    - concurrency limit はデフォで 1000 だけど、AWS に頼めば増やしてもらえるよ
-  - 起動する際にコードの読み込みや初期化が必要だから、結構時間かかっちゃうよ=コールドスタートって呼ぶよ
-    - そのため、事前にセットアップを済ませた(ウォームスタートって呼ぶよ)実行インスタンスを何台か用意しておけるよ
-    - これを Provisioned Concurrency っていうよ
-    - あとこれ使えばリクエストが spike しても scale 間に合わなくて throtteling にひっかかるみたいなのなくなるよ
+Lambda は request を受けるごとに新しく実行インスタンスを起動してリクエストを受ける。
+この、起動された台数=時間あたりにいくらリクエストを捌けるかを concurrency と呼んでいる。
+
+Burst limit を超える台数起動されちゃうと、そっから先は 500 台/min ごとしか起動できなくなってしまう。
+tokyo region では 1000 が burst limit である。
+
+burst limit 超えて、concurrency limit まで行っちゃうとそっから先はもはや台数を増やせなくなる。
+concurrency limit はデフォで 1000 だけど、AWS に頼めば増やしてもらえる。
+
+インスタンスを起動する際にはコードの読み込みや初期化が必要だから、起動には結構時間がかかってしまう。(コールドスタート)
+
+そのため、事前にセットアップを済ませた(ウォームスタートって呼ぶよ)実行インスタンスを何台か用意しておける。
+これを Provisioned Concurrency と呼ぶ。
+また、これを使えばリクエストが spike しても scale 間に合わなくて throtteling にひっかかるみたいなのを防げる。
 
 ### Layer
 
-artifact(npm_modules とか vendor/bundle とかライブラリが主)を共有しておける機能だよ
-Lambda からアクセスできる共有ストレージみたいなイメージだね
+artifact(npm_modules とか vendor/bundle とかライブラリが主)を共有しておける機能のこと。
+Lambda からアクセスできる共有ストレージみたいなイメージ。
 
 ### ConnectToVPC
 
-- Lambda は AWS 管理のネットワーク上に配置されているよ
-- なので、ユーザが作った VPC の private subnet 内にあるリソースへのアクセスは基本無理だよ
-  - とはいえ、private subnet を public subnet にするのも嫌だよ
-- そこで、ENI 経由で Lambda から private subnet にアクセスする仕組みがあるよ
-- Lambda function invoke 時に都度 ENI を作成し、その ENI を対象の private subnet に所属させ、そいつ経由で Lambda が private subnet 内のリソースにアクセスするよ
-  - ENI には SG も設定できるよ
-  - 現在では ENI は都度作成せず、最初に作ったものを使いまわしてるよ
-    - Lambda から ENI につなぐときに NAT 通してるから使いまわせるんだよ
-- この仕組みを一般に VPC 内 Lambda って言ってるよ
-  - 実際には Lambda の実行インスタンス自体は VPC 内にいないけどね
-  - 実際にいるのは ENI だよ
+Lambda は AWS 管理のネットワーク上に配置されている。  
+そのため、ユーザが作った VPC の private subnet 内にあるリソースへのアクセスは基本無理である。
+
+とはいえ、private subnet を public subnet にするのも嫌なはず。
+そこで、ENI 経由で Lambda から private subnet にアクセスする仕組みがある。
+
+Lambda function invoke 時に都度 ENI を作成し、その ENI を対象の private subnet に所属させ、そいつ経由で Lambda が private subnet 内のリソースにアクセスすることができるようになる。  
+また、その ENI には SG も設定できる。
+
+ちなみに現在では ENI は都度作成せず、最初に作ったものを使いまわす仕組みになっているためそこまでコストはかからないようになっている。
+Lambda から ENI につなぐときに NAT 通してるから使いまわせる。
+
+上記のような仕組みを一般に VPC 内 Lambda と呼んでいる。
+実際には Lambda の実行インスタンス自体は VPC 内におらず、いるのは ENI なので語弊がある気もするが。
 
 ### metrics
 
-- function が execute されるたびに、CloudWatch に metrics を送ってるよ
-  - https://docs.aws.amazon.com/lambda/latest/dg/monitoring-metrics.html
-  - Invocations は function が実行された数で、success も error も含むけど、throttle とかで execute 自体が行われなかった時は count されないよ
+function が execute されるたびに、CloudWatch に metrics を送っている。
+
+Invocations は function が実行された数で、success も error も含むけど、throttle とかで execute 自体が行われなかった時は count されない。
 
 ### logs
 
-- function 実行時に出力される log は、勝手に CloudWatchLogs に送信されるよ
-  - LogGroup は勝手に作られるよ
-  - execution role に、CloudWatchLogs へのアクセス policy を attach しとく必要はあるから注意してね
-- 事前に CloudWatchLogGroup を作成しとくと、そいつに対して log が送信されるよ
-  - `/aws/lambda/<function name>.`って名前の LogGroup にしとけば OK だよ
+function 実行時に出力される log は、勝手に CloudWatchLogs に送信される。  
+execution role に、CloudWatchLogs へのアクセス policy を attach しとく必要があるから注意すること。
+
+事前に CloudWatchLogGroup を作成しとくと、そいつに対して log が送信される。  
+`/aws/lambda/<function name>.`って名前の LogGroup にしとけば OK。
+
+ちなみに、必ずしも事前に LogGroup を作っておかなくてもよく、存在しない場合は Lambda 側で勝手に作ってくれる。
 
 ### datadog lambda layer
 
-datadog では lambda からメトリクス送るためライブラリを lamnda layer の形で提供しているよ
-`arn:aws:lambda:<AWS_リージョン>:464622532012:layer:Datadog-<ランタイム>:<バージョン>`って感じで arn 指定するととってこれるよ
+datadog では lambda からメトリクス送るためのライブラリを lamnda layer の形で提供している。
+`arn:aws:lambda:<AWS_リージョン>:464622532012:layer:Datadog-<ランタイム>:<バージョン>`って感じで arn 指定するととってこれるようになっている。
 
-中身は各ランタイム向けの package だよ
-node.js の場合 datadog-lambda-js って npm package だね
+中身は各ランタイム向けの package である。
+例えば node.js の場合 datadog-lambda-js って npm package が入ってくる。
 
 ## VPC
 
-- 仮想ネットワークだよ
-  - 各 VPC は独立したネットワークになってるよ
-- 作成するときに CIDR ブロックを指定して、IP アドレスの範囲を決めるよ(ほとんどのばあい subnetmask は 16 でやるよ)
-- VPC は全 AZ に跨って作成されるよ
-  - 1AZ に対して複数の subnet を作成できるよ(逆に言うと、subnet は AZ を跨げないよ)
-  - subnet にも CIDER を指定してアドレス範囲を決めるよ(だいたい/24 だよ)
-- アカウント作成時に勝手に各 Region に defaultVPC が作られてるよ
-  - ec2 や ELB, RDS とかは作成時に VPC を指定しなければ defaultVPC の中に作られるよ
+AWS 内で使われる仮想ネットワークである。  
+各 VPC は独立したネットワークになっている。
+
+作成するときに CIDR ブロックを指定して、IP アドレスの範囲を決める(subnetmask は 16 でやることが多い)。
+
+VPC は全 AZ に跨って作成される。  
+1AZ に対して複数の subnet を作成できる(逆に言うと、subnet は AZ を跨げない)。
+
+subnet にも CIDER を指定してアドレス範囲を決める(だいたい/24)
+
+AWS アカウント作成時に勝手に各 Region に defaultVPC が作られる。  
+ec2 や ELB, RDS とかは作成時に VPC を指定しなければ defaultVPC の中に作られる。
 
 ### subnet
 
-- 各 subnet は 1 つの route table と紐付けられるよ
-  - route table は、subnet 外に出る outbound traffic の行先を、Destination IP を元に routing するやつだよ
-  - subnet 作成時に何も指定しなければ、所属 VPC の main route table が勝手に紐付けられるよ
-  - main Route Table の中身は変更することもできるよ
-- InternetGW を持ち、route table で defaultGW(0.0.0.0/0, つまり outbound traffic に対する routing 先)として InternetGW が指定されていて、中のインスタンスが public IP を持つように設定されたものを public subnet というよ
-  - つまりインターネットへの通信もできるし、インターネットからの通信も返せるってことだよ
-  - 中に配置する ec2 には ElasticIP を割り当てて、インターネットから安定して(default の public IP だと毎回かわっちゃう)通信できるようにすることが多いよ
-- InternetGW を持たないものを private subnet というよ
-  - インターネットとの通信は一切できないよ
-- InternetGW は持たないが、NAT インスタンスをもち defaultGW として NAT を指定してるものを protected subnet というよ
-  - internet への outbound traffic のみ OK だよ
-  - package の取得などでインスタンスから internet へのアクセスは行いたいが Internet からのアクセスは許したくない場合にこれが作られる yo
+各 subnet は 1 つの route table と紐付けられる。  
+route table は、subnet 外に出る outbound traffic の行先を、Destination IP を元に routing するやつ。  
+subnet 作成時に何も指定しなければ、所属 VPC の main route table が勝手に紐付けられる。  
+main route table の中身は変更することもできる。
+
+InternetGW を持ち、route table で defaultGW(0.0.0.0/0, つまり outbound traffic に対する routing 先)として InternetGW が指定されていて、中のインスタンスが public IP を持つように設定されたものを public subnet という。  
+つまり public subnet はインターネットへの通信もできるし、インターネットからの通信も返せるってこと。  
+中に配置する ec2 には ElasticIP を割り当てて、インターネットから安定して(default の public IP だと毎回かわっちゃう)通信できるようにすることが多い。
+
+InternetGW を持たないものを private subnet という。  
+インターネットとの通信は一切できない。
+
+InternetGW は持たないが、NAT インスタンスをもち defaultGW として NAT を指定してるものを protected subnet という。  
+internet への outbound traffic のみ通る。  
+package の取得などでインスタンスから internet へのアクセスは行いたいが Internet からのアクセスは許したくない場合にこれを使う。
 
 ### NetworkACL
 
