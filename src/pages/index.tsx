@@ -10,13 +10,16 @@ const IndexPage: React.VFC<PageProps<GatsbyTypes.BlogIndexQuery>> = ({
   <Layout>
     <Seo title="Top" />
     {data?.allMarkdownRemark?.edges?.map(edge => (
-      <section key={edge.node.id} tw="py-2">
+      <section key={edge.node.id} tw="py-2 my-6">
         <Link to={edge.node.frontmatter?.slug || ""}>
           <h2 tw="text-2xl font-bold pb-2">{edge.node.frontmatter?.title}</h2>
           <p tw="pb-1 tracking-normal">{edge.node.excerpt}</p>
-          <time dateTime={edge.node.frontmatter?.date} tw="font-light">
-            {edge.node.frontmatter?.date}
-          </time>
+          <div tw="flex justify-between font-light text-sm">
+            <time dateTime={edge.node.frontmatter?.date}>
+              {edge.node.frontmatter?.date}
+            </time>
+            <div>{edge.node.timeToRead} min read</div>
+          </div>
         </Link>
       </section>
     ))}
@@ -34,7 +37,8 @@ export const query = graphql`
             date
             slug
           }
-          excerpt
+          excerpt(pruneLength: 50)
+          timeToRead
         }
       }
     }
