@@ -27,7 +27,7 @@ const StyledMarkdown = styled.div`
   }
 
   ul {
-    ${tw`my-4 list-disc`}
+    ${tw`my-8 list-disc`}
   }
 
   ol {
@@ -35,7 +35,15 @@ const StyledMarkdown = styled.div`
   }
 
   li {
-    ${tw`my-1 mx-6`}
+    ${tw`my-2 mx-6`}
+  }
+
+  li > p {
+    ${tw`mb-0`}
+  }
+
+  li > ul {
+    ${tw`my-0`}
   }
 `
 
