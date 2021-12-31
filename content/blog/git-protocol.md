@@ -1,6 +1,6 @@
 ---
 published: true
-date: "2021-11-23"
+date: "2019-09-23"
 title: "git のデータ転送プロトコルに関するメモ"
 slug: "/blog/git-protocol"
 ---
