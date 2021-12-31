@@ -27,7 +27,7 @@ assume role で得られる credential は short-term なことに注意。
 
 ### Policy
 
-policy は usecase で大別すると以下の 2 つに分類できる。
+policy は usecase で大別すると以下の 3 つに分類できる。
 
 - Identities(user, group or role)ベース policy
   - user, group, role に attach する
@@ -73,9 +73,9 @@ concurrency limit はデフォで 1000 だけど、AWS に頼めば増やして�
 
 インスタンスを起動する際にはコードの読み込みや初期化が必要だから、起動には結構時間がかかってしまう。(コールドスタート)
 
-そのため、事前にセットアップを済ませた(ウォームスタートって呼ぶよ)実行インスタンスを何台か用意しておける。
+そのため、事前にセットアップを済ませた(ウォームスタート)実行インスタンスを何台か用意しておける。
 これを Provisioned Concurrency と呼ぶ。
-また、これを使えばリクエストが spike しても scale 間に合わなくて throtteling にひっかかるみたいなのを防げる。
+これを使えばリクエストが spike しても scale 間に合わなくて throttling にひっかかるみたいなのを防げる。
 
 ### Layer
 
@@ -86,7 +86,6 @@ Lambda からアクセスできる共有ストレージみたいなイメージ�
 
 Lambda は AWS 管理のネットワーク上に配置されている。
 そのため、ユーザが作った VPC の private subnet 内にあるリソースへのアクセスは基本無理である。
-
 とはいえ、private subnet を public subnet にするのも嫌なはず。
 そこで、ENI 経由で Lambda から private subnet にアクセスする仕組みがある。
 
@@ -94,10 +93,10 @@ Lambda function invoke 時に都度 ENI を作成し、その ENI を対象の p
 また、その ENI には SG も設定できる。
 
 ちなみに現在では ENI は都度作成せず、最初に作ったものを使いまわす仕組みになっているためそこまでコストはかからないようになっている。
-Lambda から ENI につなぐときに NAT 通してるから使いまわせる。
+Lambda から ENI につなぐときに NAT 通してるから複数台で使いまわせる。
 
 上記のような仕組みを一般に VPC 内 Lambda と呼んでいる。
-実際には Lambda の実行インスタンス自体は VPC 内におらず、いるのは ENI なので語弊がある気もするが。
+実際には Lambda の実行インスタンス自体は VPC 内におらず、いるのは ENI なので誤解しやすいかも。
 
 ### metrics
 
@@ -125,15 +124,12 @@ datadog では lambda からメトリクス送るためのライブラリを lam
 
 ## VPC
 
-AWS 内で使われる仮想ネットワークである。
-各 VPC は独立したネットワークになっている。
-
+AWS 内で使われる仮想ネットワークである。各 VPC は独立したネットワークになっている。
 作成するときに CIDR ブロックを指定して、IP アドレスの範囲を決める(subnetmask は 16 でやることが多い)。
 
 VPC は全 AZ に跨って作成される。
 1AZ に対して複数の subnet を作成できる(逆に言うと、subnet は AZ を跨げない)。
-
-subnet にも CIDER を指定してアドレス範囲を決める(だいたい/24)
+subnet にも CIDER を指定してアドレス範囲を決める(だいたい/24)。
 
 AWS アカウント作成時に勝手に各 Region に defaultVPC が作られる。
 ec2 や ELB, RDS とかは作成時に VPC を指定しなければ defaultVPC の中に作られる。
@@ -146,14 +142,14 @@ subnet 作成時に何も指定しなければ、所属 VPC の main route table
 main route table の中身は変更することもできる。
 
 InternetGW を持ち、route table で defaultGW(0.0.0.0/0, つまり outbound traffic に対する routing 先)として InternetGW が指定されていて、中のインスタンスが public IP を持つように設定されたものを public subnet という。
-つまり public subnet はインターネットへの通信もできるし、インターネットからの通信も返せるってこと。
+つまり public subnet はインターネットへの通信もできるし、インターネットからの通信も返せる。
 中に配置する ec2 には ElasticIP を割り当てて、インターネットから安定して(default の public IP だと毎回かわっちゃう)通信できるようにすることが多い。
 
 InternetGW を持たないものを private subnet という。
 インターネットとの通信は一切できない。
 
 InternetGW は持たないが、NAT インスタンスをもち defaultGW として NAT を指定してるものを protected subnet という。
-internet への outbound traffic のみ通る。
+internet への outbound traffic とその戻りの通信のみ通ることになる。
 package の取得などでインスタンスから internet へのアクセスは行いたいが Internet からのアクセスは許したくない場合にこれを使う。
 
 ### NetworkACL
@@ -166,135 +162,158 @@ SG の rule と似てるけどこっちは Allow も Deny も指定できる。
 
 Internet との通信に使う component で、高い scalability と耐久性、可用性をもつ。
 
-以下の手順で Internet 通信が可能になる。
+こいつを利用することで、以下の手順で Internet 通信が可能になる。
 
 1. Internet Gateway を VPC に attach
 2. subnet に route table を設定し、インターネットアクセスを許可したい Destination(全部なら 0.0.0.0/0, 特定のサイトだけならそいつの IP)に対し Internet Gateway への routing を設定する
 3. Internet 通信したいインスタンスに Public IP を設定する
 4. Internet 通信したいインスタンスの SG,所属 subnet の NetworkACL で、対象通信先に穴あけ
 
-Internet Gateway は 1to1NAT の役割をはたす。
+Internet Gateway は 1to1 NAT の役割をはたす。
 privateIP と publicIP の mapping をしてくれることによって、Internet との通信が可能になる。
 
 ### NAT device
 
-public subnet から Internet への通信を行いたい時は、NAT device を通じて行える。
+protected subnet から Internet への通信を行いたい時は、NAT device を通じて行える。
 
-privateIP と送信元 port の組み合わせを記憶して、実際の通信先には NAT に割り当てられた publicIP でアクセス、response のヘッダに含まれてる port から privateIP への変換を行い、traffic を通信元に届ける。
+privateIP と送信元 port の組み合わせを記憶して、実際の通信先には NAT に割り当てられた publicIP でアクセス、response のヘッダに含まれてる port から privateIP への変換を行い、traffic を通信元に届ける。(要は NAPT)
 
 NAT device には managed な NATGateway と、unmanaged で ec2 インスタンス上に作成する NATInstance の二種類がある。
 何か理由がない限り managed な NATGateway を使った方がいいとのこと。
 
 #### NAT Gateway
 
-public subnet に NAT Gateway を配置して、ElasticIP を割り当てないとダメだよ
+protected subnet から NAT Gateway 経由で Internet にアクセスしたい場合、まずは public subnet に NAT Gateway を配置し、そいつに ElasticIP を割り当てる必要がある。
+そして、NAT Gateway を通したい protected subnet の route table の default gateway に NAT Gateway の id を指定してあげれば準備 OK。
+つまり protected subnet 内 instance -> NAT Gateway -> InternetGateway のように routing させる。
 
-- そうしないと外部と通信できないからね
-- つまり instance -> NAT Gateway -> InternetGateway のように routing されていくわけだね
-- subnet に配置することなんで、1AZ に配置されることになるから可用性高めたい時は複数 AZ(subnet)に 1 つずつ配置するようにした方がいいよ
-- NAT Gateway を通したい private subnet の route table の default gateway に NAT Gateway の id を指定してあげれば準備 OK だよ
+subnet に 1 つ配置するタイプの component であるため、必然的に 1AZ に 1 つ配置されることになる。
+そのため、可用性高めたい時は複数 AZ(subnet)に 1 つずつ配置するようにした方がいい。
 
 #### RouteTable
 
-- subnet もしくは gateway からの outbound traffic をどこに routing するか決めるための rule set だよ
-- 作成した VPC には、勝手に main route table が作成されて紐付けられるよ
-  - 全ての subnet は、custom route table を指定しなかった時この main route table が適用されるよ
-- Destination で通信元の指定した通信先 IP を定義し、それに対応する Target で routeing 先の gateway の id などを指定するよ
+subnet もしくは gateway からの outbound traffic をどこに routing するか決めるための rule set である。
+
+作成した VPC には、勝手に main route table が作成されて紐付けられる。
+全ての subnet は、custom route table を指定しなかった時この main route table が適用される。
+
+Destination で通信元の指定した通信先 IP を定義し、それに対応する Target で routeing 先の gateway の id などを指定する。
 
 #### VPC endpoint
 
-- ユーザー VPC 外の AWS リソース(S3)とかに、インターネット経由しなくても VPC 内からアクセスできる機能だよ
-  - AWS PrivateLink を利用されているよ
-  - Interface endpoints, Gateway Load Balancer endpoints, Gateway endpoints の 3 つがあるよ
+ユーザー VPC 外の AWS リソース(S3)とかに、インターネット経由しなくても VPC 内からアクセスできる機能。
+AWS PrivateLink が利用されている。
+
+タイプとしては、Interface endpoints, Gateway Load Balancer endpoints, Gateway endpoints の 3 つがある。
 
 ##### Interface endpoints
 
-- 今はこっちが主流で、ほとんどの service が対応しているよ
-- 指定した subnet 内に endpoint につながった ENI が立ち上がるよ
-  - もちろんそいつには private IP が与えられるので、VPC 内で通信ができるって感じだよ
+今はこっちが主流で、ほとんどの service が対応している。
+
+指定した subnet 内に endpoint につながった ENI が立ち上がる仕組み。
+もちろんそいつには private IP が与えられるので、VPC 内で通信ができるようになるという感じ。
 
 ##### Gateway endpoints
 
-- S3 と dynamoDB しか対応してないよ
-- GateWay を VPC に attach して、route table で service endpoint の Destination に対して VPC endpoint GW を routing するって感じだよ
-  - service endpoint は public IP に名前解決されて、実際には instance からは public IP にリクエストがいくので、NetworkACL で local VPC 以外への outbound を Deny とかすると失敗しちゃうよ
-  - instance からは private IP でリクエストできるので多分、内部では NAT 的な動作をしてるんだろうね
+かつて主流だったやつ。
+S3 と dynamoDB しか対応してない。
+
+GateWay を VPC に attach して、route table で service endpoint の Destination に対して VPC endpoint GW を routing するという仕組み。
+
+service endpoint は public IP に名前解決されて、実際には instance からは public IP にリクエストがいくので、NetworkACL で local VPC 以外への outbound を Deny とかすると失敗してしまうことに注意。
+instance からは private IP でリクエストできるので多分、内部では NAT 的な動作をしていそう。
 
 ## EC2
 
 ### networking
 
-- ec2 インスタンスに subnet を指定すると、仮想 NIC が作られてインスタンスに付与されるよ
-- 仮想 NIC には subnet から private IPv4 アドレスが紐付けられるよ
-  - インスタンスが terminate されるまで NIC と IP アドレスの紐付けは維持されるよ
-- private IPv4 アドレスへ名前解決する内部 DNS 用 domain 名(ip-10-251-50-12.ec2.internal とか)も勝手に追加されるよ
-  - この内部 DNS は、同じ VPC 内でしか名前解決できないよ
-- public IP アドレスの attach も可能だけど、default だと AWS で保有してるアドレスプールから割り当てられるから日々変わる可能性があるよ
-  - public IP アドレスに対応する domain 名( ec2-203-0-113-25.compute-1.amazonaws.com とか)も勝手に追加されてるよ
-  - public IP アドレスは、NAT によって primary private IP に勝手に紐付けられてるよ
-- 固定 IP が欲しいなら Elastic IP を利用してね(金はかかるよ)
+ec2 インスタンスに subnet を指定すると、仮想 NIC が作られてインスタンスに付与される。
+仮想 NIC には subnet から private IPv4 アドレスが紐付けられる。
+インスタンスが terminate されるまで NIC と IP アドレスの紐付けは維持される。
+private IPv4 アドレスへ名前解決する内部 DNS 用 domain 名(ip-10-251-50-12.ec2.internal とか)も勝手に追加される。
+この内部 DNS は、同じ VPC 内でしか名前解決できないことに注意。
+
+public IP アドレスの attach も可能だけど、default だと AWS で保有してるアドレスプールから割り当てられるから日々変わる可能性がある。
+固定 IP が欲しいなら Elastic IP を利用する必要がある(ただし追加課金がいる)。
+public IP アドレスに対応する domain 名( ec2-203-0-113-25.compute-1.amazonaws.com とか)も勝手に追加される。
+また、public IP アドレスは、NAT によって primary private IP に勝手に紐付けられる。
 
 #### ENI
 
-- AWS で使用される仮想 NIC だよ
-- ec2 インスタンスが VPC において network 通信を行うためのインタフェースとして使われたりするよ
-  - 上で書いた仮想 NIC のことだよ
-- どの subnet において、どの SG で作成するかを指定できるよ
-- ec2 インスタンスはデフォルトで eth0 って ENI が attach された状態で起動されるよ
-  - もちろん新しく ENI を作ってインスタンスに付与することで、mac アドレス, IP アドレスを 1 インスタンスに 2 以上付与することが可能だよ
+AWS で使用される仮想 NIC。
+ec2 インスタンスが VPC において network 通信を行うためのインタフェースとして使われる。
+どの subnet において、どの SG で作成するかを指定可能。
+
+ec2 インスタンスはデフォルトで eth0 って ENI が attach された状態で起動される。
+もちろん新しく ENI を作ってインスタンスに付与することで、mac アドレス, IP アドレスを 1 インスタンスに 2 以上付与することが可能。
 
 ### instance profile
 
-- インスタンスに紐づける role を指定するコンテナだよ
-- インスタンスは、ここで指定された role に assume role しにいくよ
+インスタンスに紐づける role を指定するコンテナのこと。
+インスタンスは、ここで指定された role に assume role しにいく。
 
 ### Security Group
 
-- ec2 インスタンスの仮想 firewall として機能してくれるやつだよ
-  - 例の如く、実態としては ec2 じゃなくて ENI に付与されてるものだから、ec2 についてる ENI ごとに SG を変えることができるよ
-- ec2 への inbound/outbound traffic に対する rule を設定できるお
-  - default では port 25 からの outbound は禁止されてるよ
-    - spam mailer として使われるのを防ぐためだよ
-  - deny は指定できず、allow のみ指定できるよ
-  - IPaddress(Source/Destination), protocol, port range の組み合わせに対して allow リストを作成できるよ
-    - inbound rule なら
-      - Source: 192.168.2.11, protocol: TCP, port range: 80 みたいな感じにすると、192.168.2.11 からの HTTP80 番ポートアクセスを許可するよ
-    - outbound rule なら
-      - Destination: 192.168.2.3, protocol: TCP, port range: 0-65555 みたいな感じにすると、192.168.2.3 への 0-65555(ephemeral port をふくむように)での TCP アクセスを許可するよ
-    - Source/Destination には IP だけじゃなく SG も指定できるよ
-      - 例えば、自身の SG そのものを Source に指定したら、同じ SG に属するやつからの inbound traffic を許可する感じになるよね
-- Stateful だよ
-  - つまり、allow された inbound traffic(=SG 外からの request)に対する outbound traffic(SG 外への response)は、outbound rule に関係なく許可されるよ
-  - allow された outbound traffic(=SG 外への request)に対する inbound traffic(SG 外への response)も、inbound rule に関係なく許可できるよ
-  - Stateful なわけだから
-    - Ingress => どいつからのどのポートへのアクセス(こっちへの request)を許可するか
-    - Egress => どいつへのどのポートでのアクセス(こっちからの request)を許可するか
-  - って感じに request だけをシンプルに考えられるよ
-- defaultVPC には defaultSecurityGroup が勝手に作られてて、何も指定せず ec2 インスタンス作るとそいつが attach されるよ
-  - default rule は
-    - defaultSG からの inbound は全て許可するよ(逆に言うと、defaultSG 以外からの inbound は全て拒否されているよ)
-    - outbound は全て許可するよ
-  - defaultSG は削除できないよ
-    - 削除できちゃうと、その VPC で作った ec2 インスタンス作成時に SG を指定しなかった場合何を attach していいかわからなくなるしね
-- custom SG 作ってインスタンス作るときにそいつ指定すれば、defaultSG じゃなくて指定した方が attach されるよ
-- customSG は VPC ごとに作れるよ VPC 間で SG の共有はできないよ
+ec2 インスタンスの仮想 firewall として機能してくれるやつ。
+実態としては ec2 インスタンス自体じゃなくて ENI に付与されてるものだから、ec2 インスタンスについてる ENI ごとに SG を変えることができる。
+
+ec2 への inbound/outbound traffic に対する rule を設定できる。
+default では port 25 からの outbound は禁止されている(spam mailer として使われるのを防ぐためとのこと)。
+deny は指定できず、allow のみ指定できる。
+
+IP address(Source/Destination), protocol, port range の組み合わせに対して allow リストを作成できる。
+例としては、
+
+- inbound rule
+  - `Source: 192.168.2.11, protocol: TCP, port range: 80` => 192.168.2.11 からの HTTP80 番ポートアクセスを許可する
+- outbound rule
+  - Destination: `192.168.2.3, protocol: TCP, port range: 0-65555` => 192.168.2.3 への 0-65555(ephemeral port をふくむように)での TCP アクセスを許可
+
+Source/Destination には IP だけじゃなく SG も指定できる。
+例えば、自身の SG そのものを Source に指定したら、同じ SG に属するやつからの inbound traffic を許可する感じになる。
+
+NetworkACL と違って Stateful である。
+つまり、allow された inbound traffic(=SG 外からの request)に対する outbound traffic(SG 外への response)は、outbound rule に関係なく許可される。
+allow された outbound traffic(=SG 外への request)に対する inbound traffic(SG 外への response)も、inbound rule に関係なく許可できる。
+
+Stateful であることにより、
+
+- Ingress => どいつからのどのポートへのアクセス(こっちへの request)を許可するか
+- Egress => どいつへのどのポートでのアクセス(こっちからの request)を許可するか
+
+というようにシンプルにリクエストだけを考えて制御設計ができるようになる。
+
+defaultVPC には defaultSecurityGroup が勝手に作られてて、何も指定せず ec2 インスタンス作るとそいつが attach される。
+default rule は以下のようになっている。
+
+- defaultSG からの inbound は全て許可する(逆に言うと、defaultSG 以外からの inbound は全て拒否されている)
+- outbound は全て許可する
+
+また、defaultSG は削除することができない。
+削除できちゃうと、その VPC で作った ec2 インスタンス作成時に SG を指定しなかった場合何を attach していいかわからなくなるからかと思われ。
+
+custom SG 作ってインスタンス作るときにそいつ指定すれば、defaultSG じゃなくて指定した方が attach される。
+customSG は VPC ごとに作れるが、VPC 間で SG の共有はできない。
 
 ## S3
 
 ### アクセス制御
 
+種類としては
+
 - ACL
-  - AWS account 単位で bucket, object へのアクセス権限を定義できるよ
+  - AWS account 単位で bucket, object へのアクセス権限を定義できる
 - bucket policy
-  - bucket, object への resource-based policy だよ
+  - bucket, object への resource-based policy
 - IAM policy
 
 の 3 つ
 
 ### PublicAccessBlock 設定
 
-Public(全世界公開)な ACL, bucket policy が適用されないように block する仕組みを提供してくれる設定
-AWS Account(つまりその Account が所有する bucket すべて)もしくは個別の bucket に対して設定可能
+Public(全世界公開)な ACL, bucket policy が適用されないように block する仕組みを提供してくれる機能。
+AWS Account(つまりその Account が所有する bucket すべて)もしくは個別の bucket に対して設定可能。
+具体的には以下のような設定がある。
 
 - block_public_acls
   - public な ACL が新規作成されるのを防ぐ
@@ -303,22 +322,24 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
 - ignore_public_acls
   - public な ACL が無視される
 - restrict_public_buckets
-  - public な bucket policy or ACL が適用されたとしても、認証なしにはアクセスできない(?)
+  - public な bucket policy or ACL が適用されたとしても、認証なしにはアクセスできないようにする(?)
 
 ## CloudWatch
 
-- AWS リソースの各種 metrics を収集してくれるよ
-  - CloudWatch は基本的には metrics の repository だよ
-  - EC2 とかの AWS サービスが metrics を repository に送信する、push 型 architecture だよ
-  - S3 とか Lambda は何も設定しなくても勝手に metrics 送信してくれるけど、ec2 とかは統合 CloudWatch agent を install しないといけないよ
-    - CloudWatchLog agent とかいうのは古いバージョンの agent の名前だよ
-- Dashboard には収集した metrics をグラフ化して表示できるよ
-- metrics を元に Alarm も設定できるお
-  - SNS と連携して、Alarm を slack とかに飛ばすこともできるよ
-  - ASG と連携して、alarm がなったら instance 台数増やすみたいなこともできるよ
-- namespace によって metrics がグルーピングされるよ
-  - AWS リソースが勝手に送信してる分は、その Service 名を元にした namespace になってるよ
-  - AWS/EC2 みたいなね
+AWS リソースの各種 metrics を収集してくれるサービス。
+
+CloudWatch は基本的には metrics の repository として機能する。
+EC2 とかの AWS サービスが metrics を repository に送信する、push 型 architecture である。
+S3 とか Lambda の managed なものは何も設定しなくても勝手に metrics 送信してくれるけど、ec2 とかは統合 CloudWatch agent を install しないといけない。
+
+CloudWatch には Dashboard 画面があり、収集した metrics をグラフ化して表示できる。
+metrics を元に Alarm も設定できる。
+SNS と連携して、Alarm を slack とかに飛ばすこともできる。
+ASG と連携して、alarm がなったら instance 台数増やすみたいなこともできる。
+
+namespace によって metrics がグルーピングされる。
+AWS リソースが勝手に送信してる分は、その Service 名を元にした namespace になっている。
+(例. AWS/S3)
 
 ## CloudWatchLogs
 
@@ -361,3 +382,169 @@ AWS Account(つまりその Account が所有する bucket すべて)もしく�
 - MultiAZ にする目的は耐久性と可用性の向上だよ
   - つまり、複数の AZ に primary shard とその replica がまたがって配置されてないと意味ないよ
   - ということで、data node の数は AZ の数以上、replica shard の数は 1 以上を守ってね
+
+# Kinesis
+
+- 2021 年 10 月現在、Service が 4 種類ある
+  - Kinesis Video Streams
+  - Kinesis Data Streams
+  - Kinesis Data Firehose
+  - Kinesis Data Analytics
+- 一番使うのは Kinesis Data Streams のはず
+  - Firehose は S3 とか Redshift とかに stream data を batch 的に送る managed なパイプ
+  - Streams は consumer 側は lambda だったり EC2 だったり自由にできる
+
+## Kinesis Data Streams
+
+- stream データの最小単位を data record と呼んでいる
+  - data record の stream が shard 単位で流れる
+    - data record は 同一 shard 内で unique で単調増加な sequence number をもっている
+      - record が write されるごとに increment される
+  - shard の単位で producer が stream に record を流し、consumer が受け取る
+- shard 数を指定して stream を作成する
+- data record の保持期間を retention period と呼び、デフォルトで 24 hours(max で 1year までのばせる)
+
+### Pricing & Quota
+
+- 以下 2 軸での課金の合算
+  - shard 単位での時間課金
+  - PUT した data 量
+- default では 1 AWS account で 500 shard までが上限
+- 1 shard で 1MB/sec もしくは 1000records/sec の書き込みスループット上限
+  - scale させたいなら shard の数を増やすこと
+- 読み込みスループット上限は 10MB/sec もしくは 10000records/sec
+  - 読み取りトランザクションは 1shard あたり 5 回/sec まで可能
+
+### Producer
+
+- data stream に data record を publish するやつ
+  - stream 名、partion key, data blob を指定して push する
+  - partion key によってその data record がどの shard に入るのかが決まる
+- Kinesis Producer Library(KPL)
+  - kinesis data streams への data record 送信を楽にしてくれる library
+    - retry を自動でやってくれる
+    - record を aggregate したり、collection を作って PUT_RECORDS したり batch 的なことを行い、スループットを高めてくれる
+      - aggregate は、application から KPL に送る単位での record を、Kinesis Data Stream で扱う data record の単位(partion key, sequence number, payload blob の組)に集約してくれる機能
+      - collection は、複数の kinesis data stream data record をまとめて PUT_RECORDS してくれる機能
+
+### Consumer
+
+- 同一の stream application においては必ず shard:record_processor=1:1 になるので、ある shard が同一 stream application の(同じ管理用 dynamodb table を使っている)複数の record_processor から同時に consume されることはない
+  - stream application 名は、KCL の初期化時に設定する
+    - 複数 pod や ec2 インスタンスで同一の stream application 名を使えば、それらの間で並列に分散処理を行えることになる
+  - 以下のような割り当てがなされる
+    - shard1 <- applicationA-pod1, applicationB-pod1, shard2 <- applicationA-pod2, applicationB-pod2
+- Lambda function を consumer として使うと、比較的手軽に実装ができる
+  - 対象の stream を HTTP リクエストで polling する
+  - その時点で取得できる複数 record をまとめて params とし、function を invoke
+  - function 実行中に fail したら、自動で retry してくれる
+- Kinesis Client Library(KCL) を使うと、任意のアプリケーションに対し consumer 機能を手軽に組み込める
+  - KCL は Java の Library なので、他言語で使いたい時は deamon として background 起動したプロセスを呼び出す形となる
+  - 構成
+    - KCL consumer application
+      - 1 つの stream を分散処理する consumer の単位
+    - KCL consumer application instance
+      - 上記 application のインスタンス
+      - インスタンス間で共通の dynamoDB 管理テーブルを使用する
+    - Worker
+      - KCL consumer application instance が 1 つだけもつ、処理の起点となる class
+      - shard と worker の割り当て管理や、stream からの record 取得などの管理系のタスクを実行する
+        - shard と worker の binding 情報は lease と呼ばれている
+          - 1shard と 1worker の bind で 1lease
+          - 1worker は複数 lease を獲得可能である
+          - ある shard の lease を複数 worker が同時に獲得することはできない
+        - lease は KCL consumer application ごとに固有の dynamoDB table で管理される
+          - これを lease table と呼んでいる
+      - KCL 1 系では Worker と呼ばれているが、2 系では Scheduler と呼ばれている
+    - Record Proccesor
+      - Worker が保有する、data record 処理用のロジック
+        - 典型的には thread で実装される
+      - record processor と shard は 1 対 1 対応である
+  - lease table について詳細
+    - lease table 名は consumer application 名から作成されるので、並列処理したい単位ごとに application 名は unique にすること
+    - data stream の 1shard ごとに row が unique になる
+      - そのため、1 consumer application で 1 data stream しか consume しないなら、primary key である "leaseKey" は "shardId"と一致する
+        - 複数 data stream を consume するなら、leaseKey は account-id:StreamName:streamCreationTimestamp:ShardId という format になる
+    - カラムは以下の通り
+      - leaseKey
+      - shardID
+      - streamName
+      - checkpoint
+        - data record をどこまで読んだかの offset
+      - leaseOwner
+        - その lease の owner である worker
+      - leaseCounter
+        - owner が 定期的に値を increment することで、自身が unhealthy でないことを示すカウンタ
+          - これが一定時間更新されないと、他の worker が owner を奪い shard の処理を引き継ぐ(fail over)
+    - lease table と現在の shard-worker の binding 状態との同期は、consumer application の bootstrap 時や reshard のタイミングで実行される
+  - shard からの record 取得は 一定間隔での polling で実行される
+    - idleTimeBetweenReadsInMillis で間隔 ms の設定が可能
+    - default だと 1s
+  - 重複レコードが発生しうる(at least once)
+    - producer 側で、put request の response がネットワークの途中で lost したとかで retry をおこなった場合とか
+    - consumer 側で、data record の process が完了した後 checkpoint の更新処理に入る前に hung して shutdown した場合、再開した他の worker で再度同じ checkpoint からの処理になるので record を重複して処理することになる
+  - fail over や worker 追加時
+    - worker たちは refresh thread, taker thread を立ちあげ、定期的に lease table の leaseCounter を更新 & 状態を監視している
+      - failovertime 経過ごとに上記の動作を行っているっぽい
+    - その時、leaseCounter が前確認した時と変わっていない場合は担当 owner が死んだとみなし、処理を引き継ぐために owner を奪いにいく
+    - また、worker を追加した時は新規に立ち上げた worker が他の owner の lease を奪いにいく
+      - 奪われた owner(Record Processor)は 自身が owner でなくなったことを検知すると、shutdown Exception を出して処理を終了する
+    - http://cloudsqale.com/2020/05/20/kinesis-client-library-kcl-2-x-consumer-load-balancing-rebalancing-taking-renewing-and-stealing-leases/
+  - 実装について
+    - まず RecordProcessor を実装する
+      - com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor を implements
+      - processRecords メソッド内で、ProcessRecordsInput を受け取って任意の処理を行う実装をする
+        - 正常に実行できたら、checkpoint の記録処理を行うこと
+          - これは手動で実装する必要がある
+      - shutdown メソッド内で、 record processor が終了する前の cleanup 処理などを行う
+        - shutdown メソッドは必ず processRecords メソッドが呼ばれた後に呼ばれる(多分 catch 的なやつの中で呼ばれてる)
+        - shutdown reason を取得できる
+          - reason が TERMINATE の時は, processRecords は正常に処理を実行しているはずなので、 checkpoint をちゃんと記録する処理を書くようにするといい
+            - そうでない場合は、処理の実行に失敗してるはずなので失敗時点から処理を再実行させるために checkpoint の記録はしない方がいい
+    - 次に、RecordProcessorFactory を実装する
+      - IRecordProcessorFactory を implements
+      - createProcessor メソッドを実装し、その中で RecordProcessor インスタンスを返すようにする
+      - worker はそこから返される RecordProcessor を使う
+    - 最後に、entry point から worker を生成して起動する処理を実装する
+      - worker の生成には com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker.Builder を使う
+        - recordProcessorFactory や config などを渡しつつ build する
+        - 作った worker の run メソッドを呼び出すと、 worker が起動する
+          - worker の startGracefulShutdown を呼び出すと、record processor スレッドが processRecords を実行し切ってから終了する(graceful shutdown)できる
+            - JVM の addShutdownHook に引っかけとくといい
+          - graceful shutdown を受けると RecordProcessor 側では shutdownRequested メソッドが呼ばれる
+
+# DynamoDB
+
+- 構成要素
+  - table
+    - RDB の table と同じ感じ items の集合
+  - item
+    - RDB の row と同じ感じ attribute の集合
+    - attribute のうち primary key に指定したものによって unique となる
+  - attribute
+    - RDB の column と同じ感じ
+      - もちろん schemaless
+      - nested にもできて 32 階層まで nest 可能
+- Primary key
+  - table の item を一意に決める key
+  - 以下の 2 種類のうちどちらかを使える
+    - partition key
+      - 1 つの attribute から構成される key
+        - hash 関数に通して、item を格納する partition を決定するために使われる
+    - composite primary key
+      - 2 つの attribute から構成される key
+        - 1 つめの attribute は partition key として使われる
+        - 2 つめの attribute は sort key として使われる
+      - 1 つめの attribute で partition が分けられ、それぞれの partition の中で 2 つ目の attribute が sorted index として保持されるイメージ？
+- Secondary Index
+  - 以下 2 種類がある
+    - global secondary index
+      - composite primary key を持ったテーブルを,元のテーブルから新たに作成するイメージ
+        - といっても index 用 table なのでここでの partition key は一意である必要はない
+    - local secondary index
+      - primary key で partitioing されたそれぞれの partition に追加できる sorted index っぽい
+- capacity mode
+  - read/write capacity に関して以下 2 つの mode を選択できる
+    - on demand
+      - on demand といえども、peek に対して scale するまでには一定の時間がかかることに注意
+    - provisioned
