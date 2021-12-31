@@ -45,6 +45,18 @@ const StyledMarkdown = styled.div`
   li > ul {
     ${tw`my-0`}
   }
+
+  a {
+    ${tw`text-blue-400 relative inline-block duration-300`}
+  }
+
+  a::after {
+    ${tw`absolute bottom-0 left-1/2 content w-0 h-0.5 bg-blue-400 -translate-x-1/2 duration-300`}
+  }
+
+  a:hover::after {
+    ${tw`w-full`}
+  }
 `
 
 const MarkdownContent: React.VFC<Props> = ({ children }) => (
