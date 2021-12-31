@@ -343,208 +343,256 @@ AWS リソースが勝手に送信してる分は、その Service 名を元に�
 
 ## CloudWatchLogs
 
-- ec2, s3, cloudtrail とかの AWS リソースから送られる log をためておけるよ
-  - こっちも metrics と同じく、s3 とかは設定なしでいいけど ec2 とかは統合 CloudWatch agent を install する必要があるよ
-- ためておいた log は検索したり、解析したりできるよ
-- log の内容を元に alarm を作成したりできるよ
-- log event = リソースが送ってくる log レコード 1 つ 1 つのことだよ
-  - ロギング日時とログメッセージ内容のセットで構成されてるよ
-- log stream = log event を発生させる source と 1:1 で結びつく stream だよ
-- log group = log stream をまとめるためのグループだよ
-  - web サーバーを複数台で運用してる場合とかは log stream がばらけるので、log group でまとめたりするよ
-- metric filter = log event の message から metrics を抽出し、そいつを CloudWatchMetrics に変換するやつだよ
-  - log group に対して設定できて、設定した metric filter は log group 内の全 log stream に適用されるよ
+ec2, s3, cloudtrail とかの AWS リソースから送られる log をためておける。
+こっちも metrics と同じく、s3 とかは設定なしでいいけど ec2 とかは統合 CloudWatch agent を install する必要がある。
+
+ためておいた log は検索したり、解析したりできる。
+log の内容を元に alarm を作成したりできる。
+
+### log event
+
+リソースが送ってくる log レコード 1 つ 1 つのことを指す。
+log event はロギング日時とログメッセージ内容のセットで構成されている。
+
+### log stream
+
+log event を発生させる source と 1:1 で結びつく stream。
+
+### log group
+
+log stream をまとめるためのグループ。
+web サーバーを複数台で運用してる場合とかは log stream がばらけるので、log group でまとめることが多い。
+
+### metric filter
+
+log event の message から metrics を抽出し、そいつを CloudWatchMetrics に変換するやつ。
+log group に対して設定できて、設定した metric filter は log group 内の全 log stream に適用される。
 
 ## Elastic Load Balancing
 
-- Application Load Balancer, Classic Load Balancer など複数種類があるよ
+Application Load Balancer, Classic Load Balancer など複数種類がある。
 
-### Application Load Balancer
+load balancer は最低 2AZ に配置されるようにしないといけない。
+作成するとき、最低 2AZ に配置されるように配置 subnet を指定してあげましょう。
 
-- load balancer は最低 2AZ に配置されるようにしないといけないよ
-  - 作成するとき、最低 2AZ に配置されるように配置 subnet を指定してね
-- public subnet に ALB をおいて、そいつにぶら下げる ec2 は private(protected が多いけど)subnet におくのが普通だよ
+public subnet に ALB をおいて、そいつにぶら下げる ec2 は private(protected が多いけど)subnet におくのがよくある構成。
 
-### aws CLI
+## aws CLI
 
-- v2 が最新だよ
-- 最低限の configure は aws configure コマンドでやるよ
-  - ACCESS_KEY, SECRET_ACCESS_KEY, region, output_format を configure として保持するよ
-    - AWS の API 叩くには署名つきリクエストしないといけなくて、署名には ACCESS_KEY, SECRET_ACCESS_KEY が必要なんだよ
-    - CLI では裏側で勝手に署名してくれるよ
-  - configure を local に複数保持することもできて、1 つ 1 つを profile ってよんでるよ
-  - aws configure --profile で指定すれば任意の名前の profile に保存できるけど、指定しなかったら"default"って名前の profile に保存されるよ
+最低限の configure は aws configure コマンドで出てくるウィザードで可能。
+ACCESS_KEY, SECRET_ACCESS_KEY, region, output_format を configure として保持する。
 
-## ElasticsearchService
+そもそも AWS の API 叩くには署名つきリクエストしないといけなくて、署名には ACCESS_KEY, SECRET_ACCESS_KEY が必要である。
+aws CLI はその署名を裏側で勝手にやってくれる。
 
-- 本番環境とかでは、専用 master node を用意し、かつ MultiAZ 構成にすることが多いよ
-  - AZ は 2 つか 3 つを指定できるよ
-- MultiAZ にする目的は耐久性と可用性の向上だよ
-  - つまり、複数の AZ に primary shard とその replica がまたがって配置されてないと意味ないよ
-  - ということで、data node の数は AZ の数以上、replica shard の数は 1 以上を守ってね
+configure を local に複数保持することもできて、1 つ 1 つを profile と呼ぶ。
+aws configure --profile で指定すれば任意の名前の profile に保存できるけど、指定しなかったら"default"って名前の profile に保存される。
 
-# Kinesis
+## OpenSearch
 
-- 2021 年 10 月現在、Service が 4 種類ある
-  - Kinesis Video Streams
-  - Kinesis Data Streams
-  - Kinesis Data Firehose
-  - Kinesis Data Analytics
-- 一番使うのは Kinesis Data Streams のはず
-  - Firehose は S3 とか Redshift とかに stream data を batch 的に送る managed なパイプ
-  - Streams は consumer 側は lambda だったり EC2 だったり自由にできる
+本番環境とかでは、専用 master node を用意し、かつ MultiAZ 構成にすることが多い。
+AZ は 2 つか 3 つを指定できる。
 
-## Kinesis Data Streams
+MultiAZ にする目的は耐久性と可用性の向上である。
+つまり適当に MultiAZ にするだけではだめで、複数の AZ に primary shard とその replica がまたがって配置されるようにしないといけない。
+ということで、data node の数は AZ の数以上、replica shard の数は 1 以上を守る必要がある。
 
-- stream データの最小単位を data record と呼んでいる
-  - data record の stream が shard 単位で流れる
-    - data record は 同一 shard 内で unique で単調増加な sequence number をもっている
-      - record が write されるごとに increment される
-  - shard の単位で producer が stream に record を流し、consumer が受け取る
-- shard 数を指定して stream を作成する
-- data record の保持期間を retention period と呼び、デフォルトで 24 hours(max で 1year までのばせる)
+## Kinesis
 
-### Pricing & Quota
+2021 年 10 月現在、Service が 4 種類ある
 
-- 以下 2 軸での課金の合算
-  - shard 単位での時間課金
-  - PUT した data 量
+- Kinesis Video Streams
+- Kinesis Data Streams
+- Kinesis Data Firehose
+- Kinesis Data Analytics
+
+一番使うのは Kinesis Data Streams。
+Streams は consumer 側は lambda だったり EC2 だったりを自由に選択できる。
+
+Firehose は S3 とか Redshift とかに stream data を batch 的に送る managed なパイプ。
+
+### Kinesis Data Streams
+
+stream データの最小単位を data record と呼んでいる。
+data record の stream が shard 単位で流れる。
+data record は 同一 shard 内で unique で単調増加な sequence number をもっている。
+number は record が write されるごとに increment される。
+shard の単位で producer が stream に record を流し、consumer が受け取るといった構成。
+
+shard 数を指定して stream を作成する。
+data record の保持期間を retention period と呼び、デフォルトで 24 hours(max で 1year までのばせる)。
+
+#### Pricing & Quota
+
+課金体系としては、以下 2 軸での課金の合算。
+
+- shard 単位での時間課金
+- PUT した data 量
+
+サービス制限は以下のようなものがある。
+
 - default では 1 AWS account で 500 shard までが上限
 - 1 shard で 1MB/sec もしくは 1000records/sec の書き込みスループット上限
   - scale させたいなら shard の数を増やすこと
 - 読み込みスループット上限は 10MB/sec もしくは 10000records/sec
   - 読み取りトランザクションは 1shard あたり 5 回/sec まで可能
 
-### Producer
+#### Producer
 
-- data stream に data record を publish するやつ
-  - stream 名、partion key, data blob を指定して push する
-  - partion key によってその data record がどの shard に入るのかが決まる
-- Kinesis Producer Library(KPL)
-  - kinesis data streams への data record 送信を楽にしてくれる library
-    - retry を自動でやってくれる
-    - record を aggregate したり、collection を作って PUT_RECORDS したり batch 的なことを行い、スループットを高めてくれる
-      - aggregate は、application から KPL に送る単位での record を、Kinesis Data Stream で扱う data record の単位(partion key, sequence number, payload blob の組)に集約してくれる機能
-      - collection は、複数の kinesis data stream data record をまとめて PUT_RECORDS してくれる機能
+data stream に data record を publish するやつ。
+stream 名、partion key, data blob を指定して stream に push する。
+partion key によってその data record がどの shard に入るのかが決まる。
 
-### Consumer
+##### Kinesis Producer Library(KPL)
 
-- 同一の stream application においては必ず shard:record_processor=1:1 になるので、ある shard が同一 stream application の(同じ管理用 dynamodb table を使っている)複数の record_processor から同時に consume されることはない
-  - stream application 名は、KCL の初期化時に設定する
-    - 複数 pod や ec2 インスタンスで同一の stream application 名を使えば、それらの間で並列に分散処理を行えることになる
-  - 以下のような割り当てがなされる
-    - shard1 <- applicationA-pod1, applicationB-pod1, shard2 <- applicationA-pod2, applicationB-pod2
-- Lambda function を consumer として使うと、比較的手軽に実装ができる
-  - 対象の stream を HTTP リクエストで polling する
-  - その時点で取得できる複数 record をまとめて params とし、function を invoke
-  - function 実行中に fail したら、自動で retry してくれる
-- Kinesis Client Library(KCL) を使うと、任意のアプリケーションに対し consumer 機能を手軽に組み込める
-  - KCL は Java の Library なので、他言語で使いたい時は deamon として background 起動したプロセスを呼び出す形となる
-  - 構成
-    - KCL consumer application
-      - 1 つの stream を分散処理する consumer の単位
-    - KCL consumer application instance
-      - 上記 application のインスタンス
-      - インスタンス間で共通の dynamoDB 管理テーブルを使用する
-    - Worker
-      - KCL consumer application instance が 1 つだけもつ、処理の起点となる class
-      - shard と worker の割り当て管理や、stream からの record 取得などの管理系のタスクを実行する
-        - shard と worker の binding 情報は lease と呼ばれている
-          - 1shard と 1worker の bind で 1lease
-          - 1worker は複数 lease を獲得可能である
-          - ある shard の lease を複数 worker が同時に獲得することはできない
-        - lease は KCL consumer application ごとに固有の dynamoDB table で管理される
-          - これを lease table と呼んでいる
-      - KCL 1 系では Worker と呼ばれているが、2 系では Scheduler と呼ばれている
-    - Record Proccesor
-      - Worker が保有する、data record 処理用のロジック
-        - 典型的には thread で実装される
-      - record processor と shard は 1 対 1 対応である
-  - lease table について詳細
-    - lease table 名は consumer application 名から作成されるので、並列処理したい単位ごとに application 名は unique にすること
-    - data stream の 1shard ごとに row が unique になる
-      - そのため、1 consumer application で 1 data stream しか consume しないなら、primary key である "leaseKey" は "shardId"と一致する
-        - 複数 data stream を consume するなら、leaseKey は account-id:StreamName:streamCreationTimestamp:ShardId という format になる
-    - カラムは以下の通り
-      - leaseKey
-      - shardID
-      - streamName
-      - checkpoint
-        - data record をどこまで読んだかの offset
-      - leaseOwner
-        - その lease の owner である worker
-      - leaseCounter
-        - owner が 定期的に値を increment することで、自身が unhealthy でないことを示すカウンタ
-          - これが一定時間更新されないと、他の worker が owner を奪い shard の処理を引き継ぐ(fail over)
-    - lease table と現在の shard-worker の binding 状態との同期は、consumer application の bootstrap 時や reshard のタイミングで実行される
-  - shard からの record 取得は 一定間隔での polling で実行される
-    - idleTimeBetweenReadsInMillis で間隔 ms の設定が可能
-    - default だと 1s
-  - 重複レコードが発生しうる(at least once)
-    - producer 側で、put request の response がネットワークの途中で lost したとかで retry をおこなった場合とか
-    - consumer 側で、data record の process が完了した後 checkpoint の更新処理に入る前に hung して shutdown した場合、再開した他の worker で再度同じ checkpoint からの処理になるので record を重複して処理することになる
-  - fail over や worker 追加時
-    - worker たちは refresh thread, taker thread を立ちあげ、定期的に lease table の leaseCounter を更新 & 状態を監視している
-      - failovertime 経過ごとに上記の動作を行っているっぽい
-    - その時、leaseCounter が前確認した時と変わっていない場合は担当 owner が死んだとみなし、処理を引き継ぐために owner を奪いにいく
-    - また、worker を追加した時は新規に立ち上げた worker が他の owner の lease を奪いにいく
-      - 奪われた owner(Record Processor)は 自身が owner でなくなったことを検知すると、shutdown Exception を出して処理を終了する
-    - http://cloudsqale.com/2020/05/20/kinesis-client-library-kcl-2-x-consumer-load-balancing-rebalancing-taking-renewing-and-stealing-leases/
-  - 実装について
-    - まず RecordProcessor を実装する
-      - com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor を implements
-      - processRecords メソッド内で、ProcessRecordsInput を受け取って任意の処理を行う実装をする
-        - 正常に実行できたら、checkpoint の記録処理を行うこと
-          - これは手動で実装する必要がある
-      - shutdown メソッド内で、 record processor が終了する前の cleanup 処理などを行う
-        - shutdown メソッドは必ず processRecords メソッドが呼ばれた後に呼ばれる(多分 catch 的なやつの中で呼ばれてる)
-        - shutdown reason を取得できる
-          - reason が TERMINATE の時は, processRecords は正常に処理を実行しているはずなので、 checkpoint をちゃんと記録する処理を書くようにするといい
-            - そうでない場合は、処理の実行に失敗してるはずなので失敗時点から処理を再実行させるために checkpoint の記録はしない方がいい
-    - 次に、RecordProcessorFactory を実装する
-      - IRecordProcessorFactory を implements
-      - createProcessor メソッドを実装し、その中で RecordProcessor インスタンスを返すようにする
-      - worker はそこから返される RecordProcessor を使う
-    - 最後に、entry point から worker を生成して起動する処理を実装する
-      - worker の生成には com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker.Builder を使う
-        - recordProcessorFactory や config などを渡しつつ build する
-        - 作った worker の run メソッドを呼び出すと、 worker が起動する
-          - worker の startGracefulShutdown を呼び出すと、record processor スレッドが processRecords を実行し切ってから終了する(graceful shutdown)できる
-            - JVM の addShutdownHook に引っかけとくといい
-          - graceful shutdown を受けると RecordProcessor 側では shutdownRequested メソッドが呼ばれる
+kinesis data streams への data record 送信を楽にしてくれる library。
+以下のような特徴がある。
 
-# DynamoDB
+- retry を自動でやってくれる
+- record を aggregate したり、collection を作って PUT_RECORDS したり batch 的なことを行い、スループットを高めてくれる
+  - aggregate は、application から KPL に送る単位での record を、Kinesis Data Stream で扱う data record の単位(partion key, sequence number, payload blob の組)に集約してくれる機能
+  - collection は、複数の kinesis data stream data record をまとめて PUT_RECORDS してくれる機能
 
-- 構成要素
-  - table
-    - RDB の table と同じ感じ items の集合
-  - item
-    - RDB の row と同じ感じ attribute の集合
-    - attribute のうち primary key に指定したものによって unique となる
-  - attribute
-    - RDB の column と同じ感じ
-      - もちろん schemaless
-      - nested にもできて 32 階層まで nest 可能
-- Primary key
-  - table の item を一意に決める key
-  - 以下の 2 種類のうちどちらかを使える
-    - partition key
-      - 1 つの attribute から構成される key
-        - hash 関数に通して、item を格納する partition を決定するために使われる
-    - composite primary key
-      - 2 つの attribute から構成される key
-        - 1 つめの attribute は partition key として使われる
-        - 2 つめの attribute は sort key として使われる
-      - 1 つめの attribute で partition が分けられ、それぞれの partition の中で 2 つ目の attribute が sorted index として保持されるイメージ？
-- Secondary Index
-  - 以下 2 種類がある
-    - global secondary index
-      - composite primary key を持ったテーブルを,元のテーブルから新たに作成するイメージ
-        - といっても index 用 table なのでここでの partition key は一意である必要はない
-    - local secondary index
-      - primary key で partitioing されたそれぞれの partition に追加できる sorted index っぽい
-- capacity mode
-  - read/write capacity に関して以下 2 つの mode を選択できる
-    - on demand
-      - on demand といえども、peek に対して scale するまでには一定の時間がかかることに注意
-    - provisioned
+#### Consumer
+
+data stream から data record を subscribe するやつ。
+
+Lambda function を consumer として使うと、比較的手軽に実装ができる。
+アプリケーションエンジニアは基本的には data records を引数とする関数を記述するだけでよく、以下のような動きを裏側で勝手にやってくれる。
+
+- 対象の stream を HTTP リクエストで polling する
+- その時点で取得できる複数 record をまとめて params とし、function を invoke
+- function 実行中に fail したら、自動で retry してくれる
+
+##### Kinesis Client Library(KCL)
+
+また、Kinesis Client Library(KCL) を使うと、任意のアプリケーションに対し consumer 機能を手軽に組み込める。
+
+同一の stream application においては必ず shard:record_processor=1:1 になるので、ある shard が同一 stream application の(同じ管理用 dynamodb table を使っている)複数の record_processor から同時に consume されることはない。
+stream application 名は、KCL の初期化時に設定する。
+複数 pod や ec2 インスタンスで同一の stream application 名を使えば、それらの間で並列に分散処理を行えることになる。
+例えば、以下のような割り当てがなされる。
+
+- shard1 <- applicationA-pod1, applicationB-pod1
+- shard2 <- applicationA-pod2, applicationB-pod2
+
+KCL は Java の Library なので、他言語で使いたい時は deamon として background 起動したプロセスを呼び出す形となる。
+
+- 構成
+  - KCL consumer application
+    - 1 つの stream を分散処理する consumer の単位
+  - KCL consumer application instance
+    - 上記 application のインスタンス
+    - インスタンス間で共通の dynamoDB 管理テーブルを使用する
+  - Worker
+    - KCL consumer application instance が 1 つだけもつ、処理の起点となる class
+    - shard と worker の割り当て管理や、stream からの record 取得などの管理系のタスクを実行する
+      - shard と worker の binding 情報は lease と呼ばれている
+        - 1shard と 1worker の bind で 1lease
+        - 1worker は複数 lease を獲得可能である
+        - ある shard の lease を複数 worker が同時に獲得することはできない
+      - lease は KCL consumer application ごとに固有の dynamoDB table で管理される
+        - これを lease table と呼んでいる
+    - KCL 1 系では Worker と呼ばれているが、2 系では Scheduler と呼ばれている
+  - Record Proccesor
+    - Worker が保有する、data record 処理用のロジック
+      - 典型的には thread で実装される
+    - record processor と shard は 1 対 1 対応である
+- lease table について詳細
+  - lease table 名は consumer application 名から作成されるので、並列処理したい単位ごとに application 名は unique にすること
+  - data stream の 1shard ごとに row が unique になる
+    - そのため、1 consumer application で 1 data stream しか consume しないなら、primary key である "leaseKey" は "shardId"と一致する
+      - 複数 data stream を consume するなら、leaseKey は account-id:StreamName:streamCreationTimestamp:ShardId という format になる
+  - カラムは以下の通り
+    - leaseKey
+    - shardID
+    - streamName
+    - checkpoint
+      - data record をどこまで読んだかの offset
+    - leaseOwner
+      - その lease の owner である worker
+    - leaseCounter
+      - owner が 定期的に値を increment することで、自身が unhealthy でないことを示すカウンタ
+        - これが一定時間更新されないと、他の worker が owner を奪い shard の処理を引き継ぐ(fail over)
+  - lease table と現在の shard-worker の binding 状態との同期は、consumer application の bootstrap 時や reshard のタイミングで実行される
+- shard からの record 取得は 一定間隔での polling で実行される
+  - idleTimeBetweenReadsInMillis で間隔 ms の設定が可能
+  - default だと 1s
+- 重複レコードが発生しうる(at least once)
+  - producer 側で、put request の response がネットワークの途中で lost したとかで retry をおこなった場合とか
+  - consumer 側で、data record の process が完了した後 checkpoint の更新処理に入る前に hung して shutdown した場合、再開した他の worker で再度同じ checkpoint からの処理になるので record を重複して処理することになる
+- fail over や worker 追加時
+  - worker たちは refresh thread, taker thread を立ちあげ、定期的に lease table の leaseCounter を更新 & 状態を監視している
+    - failovertime 経過ごとに上記の動作を行っているっぽい
+  - その時、leaseCounter が前確認した時と変わっていない場合は担当 owner が死んだとみなし、処理を引き継ぐために owner を奪いにいく
+  - また、worker を追加した時は新規に立ち上げた worker が他の owner の lease を奪いにいく
+    - 奪われた owner(Record Processor)は 自身が owner でなくなったことを検知すると、shutdown Exception を出して処理を終了する
+  - http://cloudsqale.com/2020/05/20/kinesis-client-library-kcl-2-x-consumer-load-balancing-rebalancing-taking-renewing-and-stealing-leases/
+- 実装について
+  - まず RecordProcessor を実装する
+    - com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor を implements
+    - processRecords メソッド内で、ProcessRecordsInput を受け取って任意の処理を行う実装をする
+      - 正常に実行できたら、checkpoint の記録処理を行うこと
+        - これは手動で実装する必要がある
+    - shutdown メソッド内で、 record processor が終了する前の cleanup 処理などを行う
+      - shutdown メソッドは必ず processRecords メソッドが呼ばれた後に呼ばれる(多分 catch 的なやつの中で呼ばれてる)
+      - shutdown reason を取得できる
+        - reason が TERMINATE の時は, processRecords は正常に処理を実行しているはずなので、 checkpoint をちゃんと記録する処理を書くようにするといい
+          - そうでない場合は、処理の実行に失敗してるはずなので失敗時点から処理を再実行させるために checkpoint の記録はしない方がいい
+  - 次に、RecordProcessorFactory を実装する
+    - IRecordProcessorFactory を implements
+    - createProcessor メソッドを実装し、その中で RecordProcessor インスタンスを返すようにする
+    - worker はそこから返される RecordProcessor を使う
+  - 最後に、entry point から worker を生成して起動する処理を実装する
+    - worker の生成には com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker.Builder を使う
+      - recordProcessorFactory や config などを渡しつつ build する
+      - 作った worker の run メソッドを呼び出すと、 worker が起動する
+        - worker の startGracefulShutdown を呼び出すと、record processor スレッドが processRecords を実行し切ってから終了する(graceful shutdown)できる
+          - JVM の addShutdownHook に引っかけとくといい
+        - graceful shutdown を受けると RecordProcessor 側では shutdownRequested メソッドが呼ばれる
+
+## DynamoDB
+
+### 構成要素
+
+- table
+  - RDB の table と同じ感じ items の集合
+- item
+  - RDB の row と同じ感じ attribute の集合
+  - attribute のうち primary key に指定したものによって unique となる
+- attribute
+  - RDB の column と同じ感じ
+    - もちろん schemaless
+    - nested にもできて 32 階層まで nest 可能
+
+### Primary key
+
+table の item を一意に決める key である。
+以下の 2 種類のうちどちらかを使える。
+
+- partition key
+  - 1 つの attribute から構成される key
+  - hash 関数に通して、item を格納する partition を決定するために使われる
+- composite primary key
+  - 2 つの attribute から構成される key
+    - 1 つめの attribute は partition key として使われる
+    - 2 つめの attribute は sort key として使われる
+  - 1 つめの attribute で partition が分けられ、それぞれの partition の中で 2 つ目の attribute が sorted index として保持されるイメージ？
+
+### Secondary Index
+
+以下 2 種類がある。
+
+- global secondary index
+  - composite primary key を持ったテーブルを、元のテーブルから新たに作成するイメージ
+    - といっても index 用 table なのでここでの partition key は一意である必要はない
+- local secondary index
+  - primary key で partitioing されたそれぞれの partition に追加できる sorted index っぽい
+
+### capacity mode
+
+read/write capacity に関して以下 2 つの mode を選択できる。
+
+- on demand
+  - on demand といえども、peek に対して scale するまでには一定の時間がかかることに注意
+- provisioned
