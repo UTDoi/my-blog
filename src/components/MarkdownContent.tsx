@@ -23,7 +23,7 @@ const StyledMarkdown = styled.div`
   }
 
   p {
-    ${tw`mb-4`}
+    ${tw`mb-4 whitespace-pre-wrap`}
   }
 
   ul {

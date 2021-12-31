@@ -84,13 +84,13 @@ Lambda からアクセスできる共有ストレージみたいなイメージ�
 
 ### ConnectToVPC
 
-Lambda は AWS 管理のネットワーク上に配置されている。  
+Lambda は AWS 管理のネットワーク上に配置されている。
 そのため、ユーザが作った VPC の private subnet 内にあるリソースへのアクセスは基本無理である。
 
 とはいえ、private subnet を public subnet にするのも嫌なはず。
 そこで、ENI 経由で Lambda から private subnet にアクセスする仕組みがある。
 
-Lambda function invoke 時に都度 ENI を作成し、その ENI を対象の private subnet に所属させ、そいつ経由で Lambda が private subnet 内のリソースにアクセスすることができるようになる。  
+Lambda function invoke 時に都度 ENI を作成し、その ENI を対象の private subnet に所属させ、そいつ経由で Lambda が private subnet 内のリソースにアクセスすることができるようになる。
 また、その ENI には SG も設定できる。
 
 ちなみに現在では ENI は都度作成せず、最初に作ったものを使いまわす仕組みになっているためそこまでコストはかからないようになっている。
@@ -107,10 +107,10 @@ Invocations は function が実行された数で、success も error も含む�
 
 ### logs
 
-function 実行時に出力される log は、勝手に CloudWatchLogs に送信される。  
+function 実行時に出力される log は、勝手に CloudWatchLogs に送信される。
 execution role に、CloudWatchLogs へのアクセス policy を attach しとく必要があるから注意すること。
 
-事前に CloudWatchLogGroup を作成しとくと、そいつに対して log が送信される。  
+事前に CloudWatchLogGroup を作成しとくと、そいつに対して log が送信される。
 `/aws/lambda/<function name>.`って名前の LogGroup にしとけば OK。
 
 ちなみに、必ずしも事前に LogGroup を作っておかなくてもよく、存在しない場合は Lambda 側で勝手に作ってくれる。
@@ -125,67 +125,73 @@ datadog では lambda からメトリクス送るためのライブラリを lam
 
 ## VPC
 
-AWS 内で使われる仮想ネットワークである。  
+AWS 内で使われる仮想ネットワークである。
 各 VPC は独立したネットワークになっている。
 
 作成するときに CIDR ブロックを指定して、IP アドレスの範囲を決める(subnetmask は 16 でやることが多い)。
 
-VPC は全 AZ に跨って作成される。  
+VPC は全 AZ に跨って作成される。
 1AZ に対して複数の subnet を作成できる(逆に言うと、subnet は AZ を跨げない)。
 
 subnet にも CIDER を指定してアドレス範囲を決める(だいたい/24)
 
-AWS アカウント作成時に勝手に各 Region に defaultVPC が作られる。  
+AWS アカウント作成時に勝手に各 Region に defaultVPC が作られる。
 ec2 や ELB, RDS とかは作成時に VPC を指定しなければ defaultVPC の中に作られる。
 
 ### subnet
 
-各 subnet は 1 つの route table と紐付けられる。  
-route table は、subnet 外に出る outbound traffic の行先を、Destination IP を元に routing するやつ。  
-subnet 作成時に何も指定しなければ、所属 VPC の main route table が勝手に紐付けられる。  
+各 subnet は 1 つの route table と紐付けられる。
+route table は、subnet 外に出る outbound traffic の行先を、Destination IP を元に routing するやつ。
+subnet 作成時に何も指定しなければ、所属 VPC の main route table が勝手に紐付けられる。
 main route table の中身は変更することもできる。
 
-InternetGW を持ち、route table で defaultGW(0.0.0.0/0, つまり outbound traffic に対する routing 先)として InternetGW が指定されていて、中のインスタンスが public IP を持つように設定されたものを public subnet という。  
-つまり public subnet はインターネットへの通信もできるし、インターネットからの通信も返せるってこと。  
+InternetGW を持ち、route table で defaultGW(0.0.0.0/0, つまり outbound traffic に対する routing 先)として InternetGW が指定されていて、中のインスタンスが public IP を持つように設定されたものを public subnet という。
+つまり public subnet はインターネットへの通信もできるし、インターネットからの通信も返せるってこと。
 中に配置する ec2 には ElasticIP を割り当てて、インターネットから安定して(default の public IP だと毎回かわっちゃう)通信できるようにすることが多い。
 
-InternetGW を持たないものを private subnet という。  
+InternetGW を持たないものを private subnet という。
 インターネットとの通信は一切できない。
 
-InternetGW は持たないが、NAT インスタンスをもち defaultGW として NAT を指定してるものを protected subnet という。  
-internet への outbound traffic のみ通る。  
+InternetGW は持たないが、NAT インスタンスをもち defaultGW として NAT を指定してるものを protected subnet という。
+internet への outbound traffic のみ通る。
 package の取得などでインスタンスから internet へのアクセスは行いたいが Internet からのアクセスは許したくない場合にこれを使う。
 
 ### NetworkACL
 
-- subnet ごとに設定できる firewall だよ
-- SG の rule と似てるけど Allow も Deny も指定できるよ
-- SG と違って Stateless なので、戻りの通信も考慮して Allow や Deny をしなきゃいけないよ
+subnet ごとに設定できる firewall である。
+SG の rule と似てるけどこっちは Allow も Deny も指定できる。
+また SG と違って Stateless なので、戻りの通信も考慮して Allow や Deny をしなきゃいけない。
 
 ### Internet Gateway
 
-- Internet との通信に使う component で、高い scalability と耐久性、可用性をもつよ
-- 以下の手順で Internet 通信が可能になるよ
-  - Internet Gateway を VPC に attach
-  - subnet に route table を設定し、インターネットアクセスを許可したい Destination(全部なら 0.0.0.0/0, 特定のサイトだけならそいつの IP)に対し Internet Gateway への routing を設定する
-  - Internet 通信したいインスタンスに Public IP を設定する
-  - Internet 通信したいインスタンスの SG,所属 subnet の NetworkACL で、対象通信先に穴あけ
-- Internet Gateway は 1to1NAT の役割をはたすよ
-  - privateIP と publicIP の mapping をしてくれることによって、Internet との通信が可能になるよ
+Internet との通信に使う component で、高い scalability と耐久性、可用性をもつ。
+
+以下の手順で Internet 通信が可能になる。
+
+1. Internet Gateway を VPC に attach
+2. subnet に route table を設定し、インターネットアクセスを許可したい Destination(全部なら 0.0.0.0/0, 特定のサイトだけならそいつの IP)に対し Internet Gateway への routing を設定する
+3. Internet 通信したいインスタンスに Public IP を設定する
+4. Internet 通信したいインスタンスの SG,所属 subnet の NetworkACL で、対象通信先に穴あけ
+
+Internet Gateway は 1to1NAT の役割をはたす。
+privateIP と publicIP の mapping をしてくれることによって、Internet との通信が可能になる。
 
 ### NAT device
 
-- public subnet から Internet への通信を行いたい時は、NAT device を通じて行えるよ
-  - privateIP と送信元 port の組み合わせを記憶して、実際の通信先には NAT に割り当てられた publicIP でアクセス、response のヘッダに含まれてる port から privateIP への変換を行い、traffic を通信元に届けるよ
-- NAT device には managed な NATGateway と、unmanaged で ec2 インスタンス上に作成する NATInstance の二種類があるよ
-  - 何か理由がない限り managed な NATGateway を使った方がいいよ
+public subnet から Internet への通信を行いたい時は、NAT device を通じて行える。
+
+privateIP と送信元 port の組み合わせを記憶して、実際の通信先には NAT に割り当てられた publicIP でアクセス、response のヘッダに含まれてる port から privateIP への変換を行い、traffic を通信元に届ける。
+
+NAT device には managed な NATGateway と、unmanaged で ec2 インスタンス上に作成する NATInstance の二種類がある。
+何か理由がない限り managed な NATGateway を使った方がいいとのこと。
 
 #### NAT Gateway
 
-- public subnet に NAT Gateway を配置して、ElasticIP を割り当てないとダメだよ
-  - そうしないと外部と通信できないからね
-  - つまり instance -> NAT Gateway -> InternetGateway のように routing されていくわけだね
-  - subnet に配置することなんで、1AZ に配置されることになるから可用性高めたい時は複数 AZ(subnet)に 1 つずつ配置するようにした方がいいよ
+public subnet に NAT Gateway を配置して、ElasticIP を割り当てないとダメだよ
+
+- そうしないと外部と通信できないからね
+- つまり instance -> NAT Gateway -> InternetGateway のように routing されていくわけだね
+- subnet に配置することなんで、1AZ に配置されることになるから可用性高めたい時は複数 AZ(subnet)に 1 つずつ配置するようにした方がいいよ
 - NAT Gateway を通したい private subnet の route table の default gateway に NAT Gateway の id を指定してあげれば準備 OK だよ
 
 #### RouteTable
