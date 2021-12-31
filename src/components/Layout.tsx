@@ -35,7 +35,7 @@ const Layout: React.VFC<Props> = ({ children }) => {
       <GlobalStyles />
       <div
         id={hamburgerMenuOuterContainerId}
-        tw="bg-gray-300 text-black font-roboto flex flex-col min-h-screen"
+        tw="text-black font-roboto flex flex-col min-h-screen"
       >
         <Header
           siteTitle={data?.site?.siteMetadata?.title || "Title"}
