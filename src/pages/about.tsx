@@ -61,7 +61,11 @@ const AboutPage: React.VFC<PageProps<GatsbyTypes.AboutPageQuery>> = ({
               </a>
             </div>
             <div>
-              <a href="mailto:doisaltu1899@gmail.com">
+              <a
+                href="https://forms.gle/2uWvqHzE3nLggxVC9"
+                target="_blank"
+                rel="noreferrer"
+              >
                 <SiGmail />
               </a>
             </div>
